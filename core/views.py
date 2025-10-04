@@ -99,92 +99,126 @@ def add_contestant(request):
 def enter_marks_summary(request):
     if request.user.role != 'admin':
         return redirect('dashboard_team')
-    
+
     # Get filter parameter
     program_id = request.GET.get('program')
-    
+
     # Get all programs for the filter dropdown
     programs = Program.objects.all().order_by('name')
-    
+
     # Filter participations based on program selection
     if program_id:
         participations = Participation.objects.filter(
-            marks__isnull=False, 
+            marks__isnull=False,
             program_id=program_id
-        ).order_by('-marks')
+        ).select_related('contestant__team', 'contestant__category', 'program').order_by('-marks')
         selected_program = Program.objects.get(id=program_id)
     else:
         participations = Participation.objects.filter(
             marks__isnull=False
-        ).order_by('program__name', '-marks')
+        ).select_related('contestant__team', 'contestant__category', 'program').order_by('program__name', '-marks')
         selected_program = None
-    
+
     # Calculate ranks and grades for all programs (or selected program)
     if program_id:
-        # Calculate for selected program only
         program_participations = Participation.objects.filter(
-            program_id=program_id, 
+            program_id=program_id,
             marks__isnull=False
-        ).order_by('-marks')
-        
-        for i, p in enumerate(program_participations, 1):
-            p.rank = i
+        ).select_related('contestant__team', 'contestant__category', 'program').order_by('-marks')
+
+        # Apply proper ranking with ties
+        assign_ranks_with_ties(program_participations)
+
+        for p in program_participations:
             p.grade = get_grade(p.marks)
-            
-            if not p.points_awarded and p.grade:
-                rank_points = POINTS_FOR_RANK.get(p.rank, 0)
-                grade_points = POINTS_FOR_GRADE.get(p.grade, 0)
-                total_points = rank_points + grade_points
-                
-                tp, created = TeamPoints.objects.get_or_create(team=p.contestant.team)
-                tp.points += total_points
-                tp.save()
-                p.points_awarded = True
-            
-            p.save()
-    else:
-        # Calculate for all programs
-        for program in Program.objects.all():
-            program_participations = Participation.objects.filter(
-                program=program, 
-                marks__isnull=False
-            ).order_by('-marks')
-            
-            for i, p in enumerate(program_participations, 1):
-                p.rank = i
-                p.grade = get_grade(p.marks)
-                
-                if not p.points_awarded:
-                    rank_points = POINTS_FOR_RANK.get(p.rank, 0)
-                    grade_points = POINTS_FOR_GRADE.get(p.grade, 0)
-                    total_points = rank_points + grade_points
-                    
+
+            if not p.points_awarded:
+                is_group = p.program.is_group
+                category_name = p.contestant.category.name if p.contestant and p.contestant.category else None
+                total_points = calculate_points(p.rank, p.grade, is_group, category_name)
+
+                if total_points > 0:
                     tp, created = TeamPoints.objects.get_or_create(team=p.contestant.team)
                     tp.points += total_points
                     tp.save()
                     p.points_awarded = True
-                
+
+            p.save()
+    else:
+        for program in Program.objects.all():
+            program_participations = Participation.objects.filter(
+                program=program,
+                marks__isnull=False
+            ).select_related('contestant__team', 'contestant__category', 'program').order_by('-marks')
+
+            # Apply proper ranking with ties
+            assign_ranks_with_ties(program_participations)
+
+            for p in program_participations:
+                p.grade = get_grade(p.marks)
+
+                if not p.points_awarded:
+                    is_group = p.program.is_group
+                    category_name = p.contestant.category.name if p.contestant and p.contestant.category else None
+                    total_points = calculate_points(p.rank, p.grade, is_group, category_name)
+
+                    if total_points > 0:
+                        tp, created = TeamPoints.objects.get_or_create(team=p.contestant.team)
+                        tp.points += total_points
+                        tp.save()
+                        p.points_awarded = True
+
                 p.save()
-    
+
     # Add calculated points to each participation for template display
     for p in participations:
-        if p.points_awarded and p.grade:
-            rank_points = POINTS_FOR_RANK.get(p.rank, 0)
-            grade_points = POINTS_FOR_GRADE.get(p.grade, 0)
-            p.total_points = rank_points + grade_points
-            p.rank_points = rank_points
-            p.grade_points = grade_points
+        if p.points_awarded:
+            is_group = p.program.is_group
+            category_name = p.contestant.category.name if p.contestant and p.contestant.category else None
+            total_points = calculate_points(p.rank, p.grade, is_group, category_name)
+
+            if category_name and category_name.strip().upper() == "GENERAL":
+                rank_points_map = {1: 10, 2: 6, 3: 3}
+                grade_points_map = {'A': 10, 'B': 6, 'C': 3}
+            else:
+                rank_points_map = POINTS_FOR_RANK_GROUP if is_group else POINTS_FOR_RANK
+                grade_points_map = POINTS_FOR_GRADE_GROUP if is_group else POINTS_FOR_GRADE
+
+            # Always compute rank points
+            p.rank_points = rank_points_map.get(p.rank, 0)
+            p.grade_points = grade_points_map.get(p.grade, 0) if p.grade else 0
+            p.total_points = p.rank_points + p.grade_points
         else:
             p.total_points = 0
             p.rank_points = 0
             p.grade_points = 0
-    
+
     return render(request, 'enter_marks.html', {
         'participations': participations,
         'programs': programs,
         'selected_program': selected_program,
         'program_id': program_id,
     })
+
+
+def assign_ranks_with_ties(participants):
+    """
+    Assign ranks to participants handling ties properly.
+    For example: marks [90, 80, 80, 79] -> ranks [1, 2, 2, 3]
+    """
+    if not participants:
+        return
+    
+    current_rank = 1
+    previous_marks = None
+    
+    for participant in participants:
+        if previous_marks is not None and participant.marks != previous_marks:
+            # Different marks, increment rank by 1
+            current_rank += 1
+        
+        participant.rank = current_rank
+        previous_marks = participant.marks
 
 @login_required
 def team_marks_summary(request):
@@ -553,6 +587,25 @@ def add_program(request):
 
     return render(request, 'add_program.html', {'categories': categories, 'programs': programs})
 
+from django.http import JsonResponse
+
+@login_required
+def toggle_is_group(request, program_id):
+    if not (request.user.is_superuser or request.user.role == 'admin'):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    program = get_object_or_404(Program, id=program_id)
+    program.is_group = not program.is_group
+    program.save()
+
+    return JsonResponse({
+        'success': True,
+        'program_id': program.id,
+        'is_group': program.is_group,
+        'status': 'Group' if program.is_group else 'Individual'
+    })
+
+
 
 @login_required
 def edit_program(request, program_id):
@@ -590,6 +643,35 @@ def delete_program(request, program_id):
     program.delete()
     messages.success(request, "Program deleted successfully.")
     return redirect('add_program')
+
+@login_required
+def bulk_delete_programs(request):
+    if request.user.role != 'admin':
+        return redirect('dashboard_team')
+
+    if request.method == "POST":
+        program_ids = request.POST.getlist("program_ids")  # get selected IDs
+        if program_ids:
+            Program.objects.filter(id__in=program_ids).delete()
+            messages.success(request, f"{len(program_ids)} programs deleted successfully.")
+        else:
+            messages.warning(request, "No programs selected.")
+        return redirect('add_program')
+
+    # If GET request → show programs list with checkboxes
+    programs = Program.objects.all().order_by('name')
+    return render(request, "bulk_delete_programs.html", {"programs": programs})
+
+def program_list(request):
+    programs = Program.objects.all().order_by('category__name', 'name')
+    categories = Category.objects.all()
+
+    context = {
+        'programs':programs,
+        'categories': categories
+    }
+    return render(request, 'program_list.html', context)
+
 
 @login_required
 def add_group_program(request):
@@ -976,36 +1058,32 @@ def assign_programs(request):
 @login_required
 def edit_assigned_programs(request, contestant_id):
     contestant = get_object_or_404(Contestant, id=contestant_id)
-    all_programs = Program.objects.all()
-    assigned_program_ids = Participation.objects.filter(
-        contestant=contestant
-    ).values_list('program_id', flat=True)
 
-    if request.method == 'POST':
-        selected_programs = request.POST.getlist('programs')
+    # ✅ Get programs in contestant's category OR "General"
+    all_programs = Program.objects.filter(
+        Q(category=contestant.category) | Q(category__name="GENERAL")
+    )
 
-        if len(selected_programs) > 5:
-            messages.error(request, "You can only select up to 5 programs.")
-        else:
-            # Remove programs not selected anymore
-            Participation.objects.filter(
-                contestant=contestant
-            ).exclude(program_id__in=selected_programs).delete()
+    # Already assigned
+    assigned_programs = Participation.objects.filter(contestant=contestant).values_list('program_id', flat=True)
 
-            # Add newly selected programs
-            for prog_id in selected_programs:
-                Participation.objects.get_or_create(
-                    contestant=contestant,
-                    program_id=prog_id
-                )
+    if request.method == "POST":
+        selected_program_ids = request.POST.getlist('programs')
 
-            messages.success(request, "Programs updated successfully!")
-            return redirect('assign_programs')  # or contestant list page
+        # Clear old assignments
+        Participation.objects.filter(contestant=contestant).delete()
 
-    return render(request, 'edit_assigned_programs.html', {
-        'contestant': contestant,
-        'all_programs': all_programs,
-        'assigned_program_ids': list(assigned_program_ids),
+        # Save new assignments
+        for program_id in selected_program_ids:
+            Participation.objects.create(contestant=contestant, program_id=program_id)
+
+        messages.success(request, "Programs updated successfully.")
+        return redirect("assigned_programs")  # adjust to your URL name
+
+    return render(request, "edit_assigned_programs.html", {
+        "contestant": contestant,
+        "all_programs": all_programs,   # ✅ category + GENERAL
+        "assigned_program_ids": list(assigned_programs),
     })
 
 from django.shortcuts import render
@@ -1043,6 +1121,49 @@ def view_assigned_programs(request):
     }
     return render(request, 'assigned_programs.html', context)
 
+from django.utils import timezone
+
+
+@login_required
+def download_participation_list_pdf(request):
+    """Download Participation List PDF"""
+    user = request.user
+
+    # Fetch contestants sorted by team, then category, then chest_no
+    participants = Contestant.objects.select_related(
+        'team', 'category', 'participation__program'
+    ).order_by('team__name', 'category__name', 'chest_no')
+
+    # If team user → filter
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+
+    # File name
+    filename = "participation_list.pdf"
+    if hasattr(user, 'team'):
+        filename = f"{user.team.name}_participation_list.pdf"
+
+    # Context
+    context = {
+        'fest_name': "Annual Arts Fest 2025",   # 👈 set your fest name dynamically if stored
+        'date': timezone.now().strftime("%d-%m-%Y"),
+        'participants': participants,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+
+    # Generate PDF
+    template_path = 'participation_list_pdf.html'
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+    pisa_status = pisa.CreatePDF(html, dest=response)
+
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
 
 @login_required
 def delete_assigned_program(request, participation_id):
@@ -1069,7 +1190,7 @@ def view_results(request):
             .order_by('rank')
         )
 
-         # Add calculated points for display
+        # Add calculated points for display
         for p in results:
             if p.points_awarded:
                 rank_points = POINTS_FOR_RANK.get(p.rank, 0)
@@ -1088,9 +1209,16 @@ def view_results(request):
             'program_total_points': sum(p.total_points for p in results)
         })
 
-        
+    # ✅ Fix: fetch categories correctly through program__participation
+    categories = Category.objects.filter(
+        program__participation__marks__isnull=False
+    ).distinct()
 
-    return render(request, 'view_results.html', {'program_results': program_results})
+    return render(
+        request,
+        'view_results.html',
+        {'program_results': program_results, "categories": categories}
+    )
 
 from django.template.loader import get_template
 from django.http import HttpResponse
@@ -1136,6 +1264,12 @@ POINTS_FOR_RANK = {1: 6, 2: 3, 3: 1}
 POINTS_FOR_GRADE = {'A': 6, 'B': 3, 'C': 1}
 POINTS_FOR_RANK_GROUP = {1: 15, 2: 10, 3: 5}
 POINTS_FOR_GRADE_GROUP = {'A': 15, 'B': 10, 'C': 5}
+GROUP_POINTS_BY_COUNT = {
+    2: {'rank': 5, 'grade': 8},
+    3: {'rank': 7, 'grade': 10},
+    4: {'rank': 9, 'grade': 12},
+    5: {'rank': 10, 'grade': 15},
+}
 
 def get_grade(marks):
     """Convert marks to grade"""
@@ -1149,6 +1283,14 @@ def get_grade(marks):
         return 'C'
     return None
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.db import transaction
+from django.forms import modelformset_factory
+from .models import Category, Program, Participation
+from .forms import MarkEntryForm
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def add_marks(request):
     if request.user.role != 'admin':
@@ -1159,9 +1301,8 @@ def add_marks(request):
     program_id = request.GET.get('program')
 
     categories = Category.objects.all().order_by('name')
-
-    # Programs dropdown
     programs = Program.objects.none()
+
     if category_id:
         try:
             category_id = int(category_id)
@@ -1169,20 +1310,33 @@ def add_marks(request):
         except (ValueError, TypeError):
             category_id = None
 
-    # Participations
     participations = Participation.objects.none()
+    program = None
+
     if program_id:
         try:
             program_id = int(program_id)
-            participations = Participation.objects.filter(
+            program = Program.objects.get(id=program_id)
+
+            base_qs = Participation.objects.filter(
                 program_id=program_id
             ).select_related(
                 'contestant',
                 'contestant__team',
                 'contestant__category',
                 'program'
-            ).order_by('contestant__chest_no')
-        except (ValueError, TypeError):
+            )
+
+            if program.is_group:
+                # 👉 For group programs, pick only 1 participation per team
+                team_ids = base_qs.values_list('contestant__team', flat=True).distinct()
+                participations = base_qs.filter(contestant__team__in=team_ids) \
+                                        .order_by('contestant__team__name')
+            else:
+                # Normal case: all contestants
+                participations = base_qs.order_by('contestant__chest_no')
+
+        except (ValueError, TypeError, Program.DoesNotExist):
             program_id = None
 
     ParticipationFormSet = modelformset_factory(
@@ -1200,11 +1354,21 @@ def add_marks(request):
                 saved_count = 0
                 for instance in instances:
                     if instance.marks is not None:
-                        instance.save()
+                        # 👉 If group program, update all team members
+                        if program and program.is_group:
+                            Participation.objects.filter(
+                                program=program,
+                                contestant__team=instance.contestant.team
+                            ).update(marks=instance.marks)
+                        else:
+                            instance.save()
                         saved_count += 1
+
                 if saved_count > 0 and category_id and program_id:
                     calculate_rankings_and_points(category_id, program_id)
+
                 messages.success(request, f'Successfully saved marks for {saved_count} participants!')
+
             return redirect(f"{request.path}?category={category_id}&program={program_id}")
         else:
             messages.error(request, 'Please correct the errors below.')
@@ -1218,8 +1382,11 @@ def add_marks(request):
         'selected_category': str(category_id) if category_id else '',
         'selected_program': str(program_id) if program_id else '',
         'participations': participations,
+        'program': program,
     }
     return render(request, 'add_marks.html', context)
+
+
 
 @login_required
 def undo_points(request, participation_id):
@@ -1267,52 +1434,59 @@ def undo_points(request, participation_id):
 
 
 def award_points_to_team(participant, total_points):
+    """Award points to team and mark participant as points awarded"""
     team = participant.contestant.team
-    team_points, _ = TeamPoints.objects.get_or_create(team=team, defaults={'points': 0})
+    team_points, created = TeamPoints.objects.get_or_create(team=team, defaults={'points': 0})
     team_points.points += total_points
     team_points.save()
-
     team.total_points += total_points
     team.save()
-
     participant.points_awarded = True
 
+
+from django.db.models import Avg
 
 def calculate_rankings_and_points(category_id, program_id):
     """
     Calculate rankings and award points for a specific program in a category.
-    Handles both individual and group programs.
+    Handles both individual and group programs with proper tie handling.
     """
     try:
         # Get program instance to check if group or individual
         program = Program.objects.get(id=program_id)
-        is_group_program = program.is_group  # <-- Ensure this field exists in Program model
-
+        is_group_program = program.is_group
+        
         participants = Participation.objects.filter(
             contestant__category_id=category_id,
             program_id=program_id,
             marks__isnull=False
         ).select_related('contestant', 'contestant__team').order_by('-marks', 'contestant__chest_no')
-
+        
         # Reset all rankings first
         Participation.objects.filter(
             contestant__category_id=category_id,
             program_id=program_id
         ).update(rank=None, grade=None)
-
-        for rank, participant in enumerate(participants, start=1):
-            participant.rank = rank
+        
+        # Apply proper ranking with ties
+        assign_ranks_with_ties(participants)
+        
+        for participant in participants:
             participant.grade = get_grade(participant.marks)
-
+            
             if not participant.points_awarded:
-                total_points = calculate_points(rank, participant.grade, is_group_program)
+                category_name = participant.contestant.category.name if participant.contestant.category else None
+                total_points = calculate_points(participant.rank, participant.grade, is_group_program, category_name)
+                
                 if total_points > 0:
                     award_points_to_team(participant, total_points)
+            
             participant.save()
-
+            
     except Exception as e:
         print(f"Error in calculate_rankings_and_points: {e}")
         raise
+
 
 
 def calculate_points(rank, grade, is_group=False, category_name=None):
@@ -1320,7 +1494,7 @@ def calculate_points(rank, grade, is_group=False, category_name=None):
     Calculate points based on whether program is group or individual,
     and handle special case for 'General' category.
     """
-    if category_name == "General":
+    if category_name and category_name.strip().upper() == "GENERAL":
         # General category point mapping
         rank_points_map = {1: 10, 2: 6, 3: 3}
         grade_points_map = {'A': 10, 'B': 6, 'C': 3}
@@ -1328,10 +1502,9 @@ def calculate_points(rank, grade, is_group=False, category_name=None):
         # Default point mapping
         rank_points_map = POINTS_FOR_RANK_GROUP if is_group else POINTS_FOR_RANK
         grade_points_map = POINTS_FOR_GRADE_GROUP if is_group else POINTS_FOR_GRADE
-
+    
     rank_points = rank_points_map.get(rank, 0)
     grade_points = grade_points_map.get(grade, 0) if grade else 0
-
     return rank_points + grade_points
 
 
@@ -1361,52 +1534,57 @@ from .models import Team, TeamPoints, Participation
 
 
 
+@login_required
 def team_leaderboard(request):
     """Display team leaderboard with points breakdown"""
-    
-    # Get all teams with their points
+
     teams = Team.objects.all().order_by('name')
-    
-    # Calculate team statistics
     team_stats = []
+
     for team in teams:
-        # Get participation statistics for this team
         participations = Participation.objects.filter(contestant__team=team)
-        
-        # Count participations by status
+
         total_participations = participations.count()
         marked_participations = participations.filter(marks__isnull=False).count()
         awarded_participations = participations.filter(points_awarded=True).count()
-        
-        # Count winners (top 3 positions) - only those with points awarded
-        winners = participations.filter(rank__in=[1, 2, 3], points_awarded=True).count()
-        
-        # Count by grades - only those with points awarded
-        grade_a = participations.filter(grade='A', points_awarded=True).count()
-        grade_b = participations.filter(grade='B', points_awarded=True).count()
-        grade_c = participations.filter(grade='C', points_awarded=True).count()
-        
-        # Count by ranks - only those with points awarded
-        first_place = participations.filter(rank=1, points_awarded=True).count()
-        second_place = participations.filter(rank=2, points_awarded=True).count()
-        third_place = participations.filter(rank=3, points_awarded=True).count()
-        
-        # Calculate points breakdown
-        rank_points = (first_place * 6) + (second_place * 3) + (third_place * 1)
-        grade_points = (grade_a * 6) + (grade_b * 3) + (grade_c * 1)
-        
-        # Calculate total points dynamically
-        total_calculated_points = rank_points + grade_points
-        
-        # Update or create TeamPoints object with calculated points
+
+        # initialize breakdown
+        rank_points = 0
+        grade_points = 0
+        winners = 0
+        grade_a = grade_b = grade_c = 0
+        first_place = second_place = third_place = 0
+
+        # loop through awarded participations and calculate points with SAME logic
+        total_calculated_points = 0
+        for p in participations.filter(points_awarded=True):
+            is_group = p.program.is_group
+            category_name = p.program.category.name if p.program and p.program.category else None
+
+            # use same function as enter_marks_summary
+            points = calculate_points(p.rank, p.grade, is_group, category_name)
+            total_calculated_points += points
+
+            # breakdowns (for display)
+            if p.rank in [1, 2, 3]:
+                winners += 1
+                if p.rank == 1: first_place += 1
+                if p.rank == 2: second_place += 1
+                if p.rank == 3: third_place += 1
+
+            if p.grade == 'A': grade_a += 1
+            if p.grade == 'B': grade_b += 1
+            if p.grade == 'C': grade_c += 1
+
+        # Update TeamPoints table
         team_points_obj, created = TeamPoints.objects.get_or_create(team=team)
         if team_points_obj.points != total_calculated_points:
             team_points_obj.points = total_calculated_points
             team_points_obj.save()
-        
+
         team_stats.append({
             'team': team,
-            'total_points': total_calculated_points,  # Use calculated points
+            'total_points': total_calculated_points,
             'rank_points': rank_points,
             'grade_points': grade_points,
             'total_participations': total_participations,
@@ -1420,113 +1598,65 @@ def team_leaderboard(request):
             'grade_b': grade_b,
             'grade_c': grade_c,
         })
-    
-    # Sort teams by total points (descending)
+
+    # sort, rank, and overall stats
     team_stats.sort(key=lambda x: x['total_points'], reverse=True)
-    
-    # Add ranking to teams
     for i, team_stat in enumerate(team_stats, 1):
         team_stat['position'] = i
-    
-    # Get top performers for highlights
+
     top_teams = team_stats[:3] if len(team_stats) >= 3 else team_stats
-    
-    # Calculate overall statistics
-    total_teams = len(team_stats)
-    total_points_distributed = sum(ts['total_points'] for ts in team_stats)
-    total_participations_all = sum(ts['total_participations'] for ts in team_stats)
-    total_winners_all = sum(ts['winners'] for ts in team_stats)
-    
+
     context = {
         'team_stats': team_stats,
         'top_teams': top_teams,
-        'total_teams': total_teams,
-        'total_points_distributed': total_points_distributed,
-        'total_participations_all': total_participations_all,
-        'total_winners_all': total_winners_all,
+        'total_teams': len(team_stats),
+        'total_points_distributed': sum(ts['total_points'] for ts in team_stats),
+        'total_participations_all': sum(ts['total_participations'] for ts in team_stats),
+        'total_winners_all': sum(ts['winners'] for ts in team_stats),
     }
-    
     return render(request, 'team_leaderboard.html', context)
 
+from collections import defaultdict
 
-@login_required
 def team_detail(request, team_id):
-    """Detailed view of a specific team's performance"""
-    
-    try:
-        team = Team.objects.get(id=team_id)
-    except Team.DoesNotExist:
-        return redirect('team_leaderboard')
-    
-    # Get all participations for this team
+    team = get_object_or_404(Team, id=team_id)
     participations = Participation.objects.filter(
-        contestant__team=team,
-        marks__isnull=False
-    ).select_related('program', 'contestant').order_by('-marks')
-    
-    # Calculate points for this team dynamically
-    awarded_participations = participations.filter(points_awarded=True)
-    
-    # Count by ranks - only those with points awarded
-    first_place = awarded_participations.filter(rank=1).count()
-    second_place = awarded_participations.filter(rank=2).count()
-    third_place = awarded_participations.filter(rank=3).count()
-    
-    # Count by grades - only those with points awarded
-    grade_a = awarded_participations.filter(grade='A').count()
-    grade_b = awarded_participations.filter(grade='B').count()
-    grade_c = awarded_participations.filter(grade='C').count()
-    
-    # Calculate points breakdown
-    rank_points = (first_place * 6) + (second_place * 3) + (third_place * 1)
-    grade_points = (grade_a * 6) + (grade_b * 3) + (grade_c * 1)
-    total_calculated_points = rank_points + grade_points
-    
-    # Update TeamPoints object
-    team_points_obj, created = TeamPoints.objects.get_or_create(team=team)
-    if team_points_obj.points != total_calculated_points:
-        team_points_obj.points = total_calculated_points
-        team_points_obj.save()
-    
-    # Separate winners and others
-    winners = participations.filter(rank__in=[1, 2, 3])
-    others = participations.exclude(rank__in=[1, 2, 3])
-    
-    # Group by programs
-    programs_performance = {}
-    for participation in participations:
-        program_name = participation.program.name
-        if program_name not in programs_performance:
-            programs_performance[program_name] = []
-        programs_performance[program_name].append(participation)
-    
-    # Additional statistics for detail view
-    points_breakdown = {
-        'rank_points': rank_points,
-        'grade_points': grade_points,
-        'total_points': total_calculated_points,
-        'first_place_count': first_place,
-        'second_place_count': second_place,
-        'third_place_count': third_place,
-        'grade_a_count': grade_a,
-        'grade_b_count': grade_b,
-        'grade_c_count': grade_c,
-    }
-    
+        contestant__team=team
+    ).select_related("program", "contestant")
+
+    total_points = 0
+    winners = []
+    others = []
+    programs_performance = defaultdict(list)
+
+    for p in participations:
+        category_name = p.program.category.name if p.program and p.program.category else None
+        points = calculate_points(p.rank, p.grade, p.program.is_group, category_name) if p.points_awarded else 0
+
+        total_points += points
+        record = {
+            "p": p,
+            "points": points,
+            "status": "✅ Awarded" if p.points_awarded else "⏳ Pending"
+        }
+
+        if p.rank and p.rank <= 3:
+            winners.append(record)
+        else:
+            others.append(record)
+
+        programs_performance[p.program.name].append(record)
+
     context = {
-        'team': team,
-        'team_points': total_calculated_points,  # Use calculated points
-        'points_breakdown': points_breakdown,
-        'participations': participations,
-        'winners': winners,
-        'others': others,
-        'programs_performance': programs_performance,
-        'total_participations': participations.count(),
-        'total_winners': winners.count(),
-        'awarded_participations': awarded_participations.count(),
+        "team": team,
+        "team_points": total_points,
+        "total_winners": len(winners),
+        "total_participations": participations.count(),
+        "programs_performance": programs_performance,
+        "winners": winners,
+        "others": others,
     }
-    
-    return render(request, 'team_detail.html', context)
+    return render(request, "team_detail.html", context)
 
 
 from django.http import HttpResponse
@@ -2396,7 +2526,7 @@ def award_individual_points():
 
 # ----------------- Leaderboard Views -----------------
 
-def team_leaderboard(request):
+def team_leaderboard2(request):
     """Display team leaderboard"""
     teams = Team.objects.all().order_by('-total_points')
     
@@ -2440,3 +2570,178 @@ def recalculate_points_view(request):
             messages.error(request, f"Error recalculating points: {str(e)}")
     
     return redirect('team_leaderboard')
+
+@login_required
+def contestant_points_list(request):
+    # Only Junior and Senior contestants
+    contestants = Contestant.objects.filter(
+        category__name__in=["JUNIOR", "SENIOR"]
+    ).distinct()
+
+    contestant_results = []
+
+    for contestant in contestants:
+        # Exclude group programs and general programs
+        participations = Participation.objects.filter(
+            contestant=contestant,
+            marks__isnull=False
+        ).exclude(
+            program__is_group=True
+        ).exclude(
+            program__category__name__iexact="GENERAL"
+        ).select_related("program", "program__category")
+
+        total_points = 0
+        program_details = []
+
+        for p in participations:
+            # Individual point system only
+            rank_points_dict = POINTS_FOR_RANK
+            grade_points_dict = POINTS_FOR_GRADE
+
+            rank_points = rank_points_dict.get(p.rank, 0)
+            grade_points = grade_points_dict.get(p.grade, 0) if p.grade else 0
+            total = rank_points + grade_points if p.points_awarded else 0
+
+            total_points += total
+
+            program_details.append({
+                "program_name": p.program.name,
+                "program_category": p.program.category.name,
+                "rank": p.rank,
+                "grade": p.grade,
+                "rank_points": rank_points,
+                "grade_points": grade_points,
+                "total_points": total
+            })
+
+        if program_details:
+            contestant_results.append({
+                "contestant": contestant,
+                "programs": program_details,
+                "total_points": total_points
+            })
+
+    # Sort by total points descending
+    contestant_results.sort(key=lambda x: x["total_points"], reverse=True)
+
+    return render(request, "contestant_points.html", {
+        "contestant_results": contestant_results
+    })
+
+def results_page(request):
+    return render (request, 'results_page.html')
+
+from django.shortcuts import render
+from .models import Contestant, Category, Program
+
+@login_required
+def contestant_programs(request):
+    user = request.user
+
+    if hasattr(user, "team"):  # if user is a team user
+        contestants = Contestant.objects.filter(team=user.team).prefetch_related(
+            "participation_set__program__category"
+        )
+        is_team_user = True
+        team_name = user.team.name
+    else:  # committee/admin etc.
+        contestants = Contestant.objects.prefetch_related(
+            "participation_set__program__category"
+        )
+        is_team_user = False
+        team_name = None
+
+    context = {
+        "contestants": contestants,
+        "is_team_user": is_team_user,
+        "team_name": team_name,
+    }
+    return render(request, "contestant_programs.html", context)
+
+@login_required
+def contestant_programs_pdf_xml(request):
+    """
+    Generate PDF using xhtml2pdf (pisa).
+    Team users see only their team's contestants.
+    """
+    user = request.user
+    is_team_user = hasattr(user, "team")
+
+    if is_team_user:
+        contestants = Contestant.objects.filter(team=user.team).prefetch_related(
+            "participation_set__program__category"
+        )
+        team_name = user.team.name
+    else:
+        contestants = Contestant.objects.all().prefetch_related(
+            "participation_set__program__category"
+        )
+        team_name = None
+
+    context = {
+        "contestants": contestants,
+        "is_team_user": is_team_user,
+        "team_name": team_name,
+    }
+
+    # Render HTML template to string
+    template = get_template("contestant_programs_pdf_xml.html")
+    html = template.render(context)
+
+    # Create PDF
+    result = io.BytesIO()
+    pisa_status = pisa.CreatePDF(src=html, dest=result, encoding='utf-8')
+
+    if pisa_status.err:
+        # For debug you can return html, but in production give a friendly message
+        return HttpResponse('We had some errors while generating PDF. Please check your template and CSS.')
+
+    # Return PDF as response
+    response = HttpResponse(result.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="contestant_programs.pdf"'
+    return response
+
+@login_required
+def enter_marks_summary_cat(request):
+    if request.user.role != 'admin':
+        return redirect('dashboard_team')
+
+    # Get filter parameters
+    program_id = request.GET.get('program')
+    category_id = request.GET.get('category')
+
+    # Get all programs and categories for filter dropdowns
+    programs = Program.objects.all().order_by('name')
+    categories = Category.objects.all().order_by('name')
+
+    # Base queryset
+    participations = Participation.objects.filter(marks__isnull=False)
+
+    # Apply filters
+    if program_id:
+        participations = participations.filter(program_id=program_id)
+    if category_id:
+        participations = participations.filter(contestant__category_id=category_id)
+
+    # Optimize query
+    participations = participations.select_related(
+        'contestant__team', 'contestant__category', 'program'
+    ).order_by('program__name', '-marks')
+
+    # Handle selected objects
+    selected_program = Program.objects.get(id=program_id) if program_id else None
+    selected_category = Category.objects.get(id=category_id) if category_id else None
+
+    # Ranking + grade assignment logic (same as before) ...
+    # You can reuse your ranking & points awarding logic here
+
+    return render(request, 'enter_marks_summary_cat.html', {
+        'participations': participations,
+        'programs': programs,
+        'categories': categories,
+        'selected_program': selected_program,
+        'selected_category': selected_category,
+        'program_id': program_id,
+        'category_id': category_id,
+    })

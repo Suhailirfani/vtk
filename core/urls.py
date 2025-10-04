@@ -40,6 +40,8 @@ urlpatterns = [
     path('add-program/', views.add_program, name='add_program'),
     path('edit-program/<int:program_id>/', views.edit_program, name='edit_program'),
     path('delete-program/<int:program_id>/', views.delete_program, name='delete_program'), 
+    path('bulk-delete-programs/', views.bulk_delete_programs, name='bulk_delete_programs'),
+    path('program_list/', views.program_list, name='program_list'),
     path('participants/', views.participant_list, name='participant_list'),
     path('participants/add/', views.add_participant, name='add_participant'),
     path('participants/edit/<int:id>/', views.edit_participant, name='edit_participant'),
@@ -48,6 +50,7 @@ urlpatterns = [
     path('edit_team/<int:team_id>/', views.edit_team, name='edit_team'),
     path('delete_team/<int:team_id>/', views.delete_team, name='delete_team'),
     path('assigned-programs/', views.view_assigned_programs, name='assigned_programs'),
+    path('download_participants_list/', views.download_participation_list_pdf, name='download_participation_list'),
     path('add_marks/', views.add_marks, name='add_marks'),
     path('undo-points/<int:participation_id>/', views.undo_points, name='undo_points'),
     path('view_results/', views.view_results, name='view_results'),
@@ -81,7 +84,7 @@ urlpatterns = [
     path('program/<int:program_id>/results/', views.program_results, name='program_results'),
     
     # Leaderboard URLs
-    path('leaderboard/', views.team_leaderboard, name='team_leaderboard'),
+    path('leaderboard/', views.team_leaderboard2, name='team_leaderboard2'),
     
     # Utility URLs
     path('recalculate-points/', views.recalculate_points_view, name='recalculate_points'),
@@ -90,5 +93,16 @@ urlpatterns = [
     path('assigned-programs/delete/<int:participation_id>/', views.delete_assigned_program, name='delete_assigned_program'),
 
     # path('list_page/', views.list_page, name='list_page'),
+    # urls.py
+    path('program/<int:program_id>/toggle/', views.toggle_is_group, name='toggle_is_group'),
+    path('contestant-points/', views.contestant_points_list, name='contestant_points_list'),
+    path('results-page/', views.results_page, name='results_page'),
+    # added on 26-09-25
+    path('contestant-programs/', views.contestant_programs, name='contestant_programs'),
+    path('contestant-programs-pdf/', views.contestant_programs_pdf_xml, name='contestant_programs_pdf'),
+    path('enter-marks-sum-cat/', views.enter_marks_summary_cat, name='enter_marks_summary_cat'),
+
+    
+
 
 ]

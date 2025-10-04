@@ -6,17 +6,11 @@
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
 
-        .forms-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
-
         .form-block {
-            width: 48%;          /* two forms per row */
-            margin-bottom: 20px; /* space below each form */
+            width: 100%;          
+            margin-bottom: 20px;
             box-sizing: border-box;
-            page-break-inside: avoid; /* keep form in one piece */
+            page-break-after: always;  /* ✅ each program on new page */
         }
 
         h2, h3 { text-align: center; margin: 5px 0; font-size: 14px; }
@@ -24,9 +18,9 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin: 20px 0;
             table-layout: fixed;
-            padding-left: 100px;
+            page-break-inside: avoid;  /* keep table together */
         }
 
         th, td {
@@ -37,84 +31,58 @@
         }
 
         th { background: #f2f2f2; }
-        td{ height: 40px; }
-        .total-col {
-            width: 85px;
-            font-weight: bold;
-            background-color: #d4edda;
-        }
-        .marks-col {
-            width: 75px;
-            background-color: #f8f9fa;
-            height: 28px;
-            font-size: 16px;
-        }
+        td { height: 40px; }
+        .total-col { width: 85px; font-weight: bold; background-color: #d4edda; }
+        .marks-col { width: 75px; background-color: #f8f9fa; height: 28px; font-size: 16px; }
         .col-chest { width: 100px; }
         .col-code { width: 100px; }
         .header-medium { font-size: 13px !important; }
         .header-small { font-size: 11px !important; }
-
-        /* Force new page only after two-column layout fills */
-        .page-break {
-            page-break-after: always;
-            width: 100%;
-        }
         .col-slno { width: 40px; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            table-layout: fixed;
-            page-break-inside: avoid;  /* ✅ keep table together */
-        }
-        thead, tr {
-            page-break-inside: avoid;  /* extra safety */
-            page-break-after: auto;
-        }
     </style>
+
 </head>
 <body>
     <h2>All Valuation Forms</h2>
 
-    <div class="forms-container">
-        {% for item in program_participants %}
-        <div class="form-block">
-            <h3>{{ item.program.name }} – {{ item.program.category.name }}</h3>
+    {% for item in program_participants %}
+    <div class="form-block">
+        <h3>{{ item.program.name }} – {{ item.program.category.name }}</h3>
 
-            {% if item.participants %}
-            <table>
-                <thead>
-                    <tr>
-                        <th class="header-medium col-slno">Sl No</th>
-                        <th class="header-medium col-chest">Chest No</th>
-                        <th class="header-medium col-code">Code <br> Letter</th>
-                        <th class="header-small">Mark 1</th>
-                        <th class="header-small">Mark 2</th>
-                        <th class="header-small">Mark 3</th>
-                        <th class="header-small">Mark 4</th>
-                        <th class="total-col">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in item.participants %}
-                    <tr>
-                        <td><strong>{{ forloop.counter }}</strong></td>
-                        <td class="col-chest">{{ p.chest_no }}</td>
-                        <td class="col-code"></td>
-                        <td class="marks-col"></td>
-                        <td class="marks-col"></td>
-                        <td class="marks-col"></td>
-                        <td class="marks-col"></td>
-                        <td class="total-col"></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-                <p>No participants found.</p>
-            {% endif %}
-        </div>
-        {% endfor %}
+        {% if item.participants %}
+        <table>
+            <thead>
+                <tr>
+                    <th class="header-medium col-slno">Sl No</th>
+                    <th class="header-medium col-chest">Chest No</th>
+                    <th class="header-medium col-code">Code <br> Letter</th>
+                    <th class="header-small">Mark 1</th>
+                    <th class="header-small">Mark 2</th>
+                    <th class="header-small">Mark 3</th>
+                    <th class="header-small">Mark 4</th>
+                    <th class="total-col">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in item.participants %}
+                <tr>
+                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <td class="col-chest">{{ p.chest_no }}</td>
+                    <td class="col-code"></td>
+                    <td class="marks-col"></td>
+                    <td class="marks-col"></td>
+                    <td class="marks-col"></td>
+                    <td class="marks-col"></td>
+                    <td class="total-col"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No participants found.</p>
+        {% endif %}
     </div>
+    {% endfor %}
 </body>
+
 </html>

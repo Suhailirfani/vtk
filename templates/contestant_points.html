@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>🏅 Contestant Points List</h3>
+
+    {% for cr in contestant_results %}
+        <h4 class="mt-4">{{ forloop.counter }}. {{ cr.contestant.name }} (Chest: {{ cr.contestant.chest_no }}) - {{ cr.contestant.category.name }}</h4>
+        <table class="table table-bordered table-hover mt-2">
+            <thead class="table-dark">
+                <tr>
+                    <th>Program</th>
+                    <th>Category</th>
+                    <th>Rank</th>
+                    <th>Grade</th>
+                    <th>Rank Points</th>
+                    <th>Grade Points</th>
+                    <th>Total Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in cr.programs %}
+                <tr>
+                    <td>{{ p.program_name }}</td>
+                    <td>{{ p.program_category }}</td>
+                    <td>{{ p.rank }}</td>
+                    <td>{{ p.grade }}</td>
+                    <td>{{ p.rank_points }}</td>
+                    <td>{{ p.grade_points }}</td>
+                    <td>{{ p.total_points }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="table-info">
+                    <td colspan="6" class="text-end"><strong>Total Points</strong></td>
+                    <td><strong>{{ cr.total_points }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    {% endfor %}
+</div>
+{% endblock %}

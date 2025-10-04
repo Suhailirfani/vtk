@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Bulk Delete Programs</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>Name</th>
+                    <th>Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for program in programs %}
+                <tr>
+                    <td><input type="checkbox" name="program_ids" value="{{ program.id }}"></td>
+                    <td>{{ program.name }}</td>
+                    <td>{{ program.category.name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-danger">Delete Selected</button>
+    </form>
+</div>
+
+<script>
+// ✅ Select/Deselect all checkboxes
+document.getElementById("selectAll").addEventListener("click", function () {
+    let checkboxes = document.querySelectorAll("input[name='program_ids']");
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}

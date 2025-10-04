@@ -548,6 +548,7 @@
     <div class="logo-section">
       <span class="logo-icon">🎛️</span>
       <h1 class="admin-title">Admin Dashboard</h1>
+      <a href="{% url 'girls_page' %}" class="btn btn-primary">Go To Off Campus</a>
     </div>
     <div class="header-actions">
       <a href="{% url 'view_users' %}" class="header-btn" title="Users">👥</a>
@@ -598,6 +599,10 @@
           <a href="{% url 'team_leaderboard' %}" class="operation-btn">Leaderboard</a>
           <a href="{% url 'create_group_participation' %}" class="operation-btn">Group program assign</a>
           <a href="{% url 'group_participation_list' %}" class="operation-btn">gplist</a>
+          <a href="{% url 'contestant_points_list' %}" class="operation-btn" >individual</a>
+          <a href="{% url 'results_page' %}" class="operation-btn" >Results</a>
+          <a href="{% url 'contestant_programs' %}" class="operation-btn">Contestant programs</a>
+          <a href="{% url 'enter_marks_summary_cat' %}" class="operation-btn">Category wise</a>
         </div>
       </div>
     </div>

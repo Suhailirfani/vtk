@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>📊 Entered Marks Summary</h3>
+        <div class="d-flex align-items-center">
+            <form method="get" class="d-flex">
+                <span class="me-2 text-muted">Filter by Program:</span>
+                <select name="program" class="form-select me-2" onchange="this.form.submit()" style="min-width: 200px;">
+                    <option value="">-- All Programs --</option>
+                    {% for program in programs %}
+                        <option value="{{ program.id }}" {% if program_id == program.id|stringformat:"s" %}selected{% endif %}>
+                            {{ program.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <span class="me-2 text-muted">Filter by Category:</span>
+                <select name="category" class="form-select me-2" onchange="this.form.submit()" style="min-width: 200px;">
+                    <option value="">-- All Categories --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_id == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-outline-primary btn-sm">Go</button>
+            </form>
+        </div>
+    </div>
+    
+    {% if selected_program or selected_category %}
+        <div class="alert alert-info mb-3">
+            <strong>📋 Showing results for:</strong>
+            {% if selected_program %} Program: <b>{{ selected_program.name }}</b>{% endif %}
+            {% if selected_program and selected_category %} | {% endif %}
+            {% if selected_category %} Category: <b>{{ selected_category.name }}</b>{% endif %}
+            <a href="?" class="btn btn-sm btn-outline-secondary ms-2">Clear Filters</a>
+        </div>
+    {% endif %}
+    
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h5 class="text-primary">{{ participations.count }}</h5>
+                            <small class="text-muted">Total Entries</small>
+                        </div>
+                        {% if selected_program %}
+                            <div class="col-md-3">
+                                <h5 class="text-success">{{ participations|length }}</h5>
+                                <small class="text-muted">Program Participants</small>
+                            </div>
+                        {% endif %}
+                        {% if selected_category %}
+                            <div class="col-md-3">
+                                <h5 class="text-success">{{ participations|length }}</h5>
+                                <small class="text-muted">Category Participants</small>
+                            </div>
+                        {% endif %}
+                        <div class="col-md-3">
+                            <h5 class="text-warning">
+                                {{ participations|length|add:"-3" }}
+                            </h5>
+                            <small class="text-muted">Other Ranks</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-info">
+                                {% with top_three=participations|slice:":3" %}{{ top_three|length }}{% endwith %}
+                            </h5>
+                            <small class="text-muted">Top 3 Positions</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    {% if not selected_program %}
+                        <th>Program</th>
+                    {% endif %}
+                    {% if not selected_category %}
+                        <th>Category</th>
+                    {% endif %}
+                    <th>Chest No</th>
+                    <th>Contestant</th>
+                    <th>Team</th>
+                    <th>Marks</th>
+                    <th>Grade</th>
+                    <th>Rank</th>
+                    <th>Points Awarded</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in participations %}
+                    <tr {% if p.rank <= 3 %}class="table-warning"{% endif %}>
+                        <td>{{ forloop.counter }}</td>
+                        {% if not selected_program %}
+                            <td><span class="badge bg-secondary">{{ p.program.name }}</span></td>
+                        {% endif %}
+                        {% if not selected_category %}
+                            <td><span class="badge bg-dark">{{ p.contestant.category.name }}</span></td>
+                        {% endif %}
+                        <td><strong>{{ p.contestant.chest_no }}</strong></td>
+                        <td>{{ p.contestant.name }}</td>
+                        <td><span class="badge bg-primary">{{ p.contestant.team.name }}</span></td>
+                        <td>
+                            <span class="badge {% if p.marks >= 80 %}bg-success{% elif p.marks >= 60 %}bg-info{% elif p.marks >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ p.marks }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if p.grade %}
+                                <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% elif p.grade == 'C' %}bg-warning{% endif %}">
+                                    {{ p.grade }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.rank == 1 %}
+                                <span class="fs-5">🥇</span> 1st
+                            {% elif p.rank == 2 %}
+                                <span class="fs-5">🥈</span> 2nd
+                            {% elif p.rank == 3 %}
+                                <span class="fs-5">🥉</span> 3rd
+                            {% else %}
+                                <span class="badge bg-secondary">{{ p.rank }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.points_awarded %}
+                                <span class="badge {% if p.rank <= 3 %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                                    {{ p.total_points }} pts
+                                </span>
+                                <span class="text-success ms-1">✅</span>
+                                <small class="text-muted d-block">
+                                    ({{ p.rank_points }}+{{ p.grade_points }})
+                                </small>
+                            {% else %}
+                                <span class="text-danger fs-5">❌</span>
+                                <small class="text-muted d-block">Not awarded</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="{% if selected_program and selected_category %}8{% elif selected_program or selected_category %}9{% else %}10{% endif %}" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                            No marked participations found.
+                            {% if selected_program or selected_category %}
+                                <br><small>Try selecting different filters or <a href="?">view all</a>.</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if participations %}
+        <div class="mt-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">🏆 Ranking Legend</h6>
+                        </div>
+                        <div class="card-body">
+                            <small>
+                                <span class="badge bg-warning me-2">Top 3</span> Highlighted rows<br>
+                                🥇 1st Place (6 rank points) | 🥈 2nd Place (3 rank points) | 🥉 3rd Place (1 rank point)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">🎯 Points Calculation</h6>
+                        </div>
+                        <div class="card-body">
+                            <small>
+                                <strong>Total Points = Rank Points + Grade Points</strong><br>
+                                <span class="text-primary">Rank:</span> 1st=6pts, 2nd=3pts, 3rd=1pt, Others=0pts<br>
+                                <span class="text-success">Grade:</span> A=6pts, B=3pts, C=1pt
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

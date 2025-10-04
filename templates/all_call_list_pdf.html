@@ -5,16 +5,40 @@
     <title>All Programs Call List</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; }
-        h2 { text-align: center; margin: 10px 0; }
+        h2 { margin: 10px 0; }
+        h1{
+            text-align:center;
+        }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid black; padding: 5px; text-align: left; }
         th { background: #f2f2f2; }
+        .program-block {
+            page-break-after: always;
+        }
+                .event-title {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            text-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+            letter-spacing: -0.02em;
+        }
+
+
     </style>
 </head>
 <body>
 
     {% for entry in program_participants %}
-        <h2>{{ entry.program.name }}</h2>
+    <div class="program-block">
+        <div  class="event-title"><h1>FELIZDIA 2K25</h1></div>
+        <h1>CALL LIST</h1>
+        <h2>PROGRAM: {{forloop.counter}}.&nbsp;{{ entry.program.name|upper }} </h2>
+        <h2>CATEGORY: {{ entry.program.category.name }}</h2>
+        <hr>
         <table>
             <thead>
                 <tr>
@@ -30,10 +54,10 @@
                 {% for p in entry.participants %}
                     <tr>
                         <td>{{ p.chest_no }}</td>
-                        <td>{{ p.name }}</td>
-                        <td>{{ p.category.name }}</td>
+                        <td>{{ p.name|upper }}</td>
+                        <td>{{ entry.program.category.name }}</td>
                         {% if not is_team_user %}
-                            <td>{{ p.team.name }}</td>
+                            <td>{{ p.team.name|upper }}</td>
                         {% endif %}
                     </tr>
                 {% empty %}
@@ -41,6 +65,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     {% endfor %}
 
 </body>

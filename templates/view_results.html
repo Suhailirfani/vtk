@@ -3,6 +3,21 @@
 <div class="container mt-4">
     <h3>🏆 Competition Results</h3>
 
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search contestant, chest no, or program...">
+        </div>
+        <div class="col-md-4">
+            <select id="categoryFilter" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.name }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+
     {% for pr in program_results %}
         <h4 class="mt-4">{{ pr.program.name }}</h4>
         <table class="table table-bordered table-hover mt-2">
@@ -13,6 +28,7 @@
                     <th>Contestant</th>
                     <th>Category</th>
                     <th>Grade</th>
+                    <th>Point</th>
                 </tr>
             </thead>
             <tbody>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competition Results</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .filter-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .program-card {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .program-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        .program-header {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: 0;
+        }
+        .results-count {
+            background: rgba(255,255,255,0.2);
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+        .rank-badge {
+            font-size: 1.2em;
+            padding: 5px 8px;
+            border-radius: 50%;
+            display: inline-block;
+            text-align: center;
+            min-width: 35px;
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .search-highlight {
+            background-color: #fff3cd;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+        .filter-tags {
+            margin-top: 10px;
+        }
+        .filter-tag {
+            display: inline-block;
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 20px;
+            padding: 4px 12px;
+            margin: 2px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-tag:hover {
+            background: #dee2e6;
+        }
+        .filter-tag.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>🏆 Competition Results</h3>
+            <button class="btn btn-danger" onclick="downloadPDF()">📄 Download PDF</button>
+        </div>
+
+        <!-- Enhanced Filter Section -->
+        <div class="filter-card">
+            <h5 class="mb-3">🔍 Search & Filter Options</h5>
+            
+            <div class="row">
+                <!-- Search Input -->
+                <div class="col-md-6 mb-3">
+                    <label for="searchInput" class="form-label">Search</label>
+                    <input type="text" id="searchInput" class="form-control" 
+                           placeholder="Search by name, chest no, category, or program...">
+                </div>
+                
+                <!-- View Mode -->
+                <div class="col-md-6 mb-3">
+                    <label for="viewMode" class="form-label">View Mode</label>
+                    <select id="viewMode" class="form-select">
+                        <option value="all">All Programs</option>
+                        <option value="program">By Program</option>
+                        <option value="category">By Category</option>
+                        <option value="contestant">By Contestant</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Category Filter -->
+                <div class="col-md-4 mb-3">
+                    <label for="categoryFilter" class="form-label">Category</label>
+                    <select id="categoryFilter" class="form-select">
+                        <option value="">All Categories</option>
+                        <option value="Senior">Senior</option>
+                        <option value="Junior">Junior</option>
+                        <option value="Sub Junior">Sub Junior</option>
+                    </select>
+                </div>
+
+                <!-- Program Filter -->
+                <div class="col-md-4 mb-3">
+                    <label for="programFilter" class="form-label">Program</label>
+                    <select id="programFilter" class="form-select">
+                        <option value="">All Programs</option>
+                        <option value="Qawwali">Qawwali</option>
+                        <option value="Ghazal">Ghazal</option>
+                        <option value="Classical Music">Classical Music</option>
+                        <option value="Folk Dance">Folk Dance</option>
+                        <option value="Classical Dance">Classical Dance</option>
+                    </select>
+                </div>
+
+                <!-- Rank Filter -->
+                <div class="col-md-4 mb-3">
+                    <label for="rankFilter" class="form-label">Rank</label>
+                    <select id="rankFilter" class="form-select">
+                        <option value="">All Ranks</option>
+                        <option value="1">🥇 First Place</option>
+                        <option value="2">🥈 Second Place</option>
+                        <option value="3">🥉 Third Place</option>
+                        <option value="other">Other Positions</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Quick Filter Tags -->
+            <div class="filter-tags">
+                <span class="text-muted">Quick Filters:</span>
+                <span class="filter-tag" data-filter="winners">🏆 Top 3 Only</span>
+                <span class="filter-tag" data-filter="grade-a">⭐ Grade A</span>
+                <span class="filter-tag" data-filter="high-points">🔥 High Points</span>
+                <span class="filter-tag" data-filter="senior">👨 Senior Category</span>
+                <span class="filter-tag" data-filter="junior">👦 Junior Category</span>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="row mt-3" id="resultsSummary">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div style="font-size: 1.5em; font-weight: bold;">0</div>
+                        <div style="font-size: 0.9em;">Total Results</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div style="font-size: 1.5em; font-weight: bold;">0</div>
+                        <div style="font-size: 0.9em;">Programs</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div style="font-size: 1.5em; font-weight: bold;">0</div>
+                        <div style="font-size: 0.9em;">Categories</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div style="font-size: 1.5em; font-weight: bold;">0</div>
+                        <div style="font-size: 0.9em;">Winners</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer">
+            
+            <!-- Sample Program Results -->
+            <div class="program-card" data-program="Qawwali" data-category="Senior">
+                <div class="program-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">🎵 Qawwali Competition</h5>
+                            <small>Senior Category • Classical Music</small>
+                        </div>
+                        <span class="results-count">5 Participants</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">Rank</th>
+                                <th style="width: 100px;">Chest No</th>
+                                <th>Contestant</th>
+                                <th>Category</th>
+                                <th style="width: 80px;">Grade</th>
+                                <th style="width: 80px;">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-success" data-rank="1" data-category="Senior" data-grade="A+" data-points="95">
+                                <td><span class="rank-badge bg-warning">🥇</span></td>
+                                <td><strong>S001</strong></td>
+                                <td><strong>Ahmed Ali</strong></td>
+                                <td><span class="badge bg-primary">Senior</span></td>
+                                <td><span class="badge bg-success">A+</span></td>
+                                <td><strong>95</strong></td>
+                            </tr>
+                            <tr class="table-info" data-rank="2" data-category="Senior" data-grade="A" data-points="88">
+                                <td><span class="rank-badge bg-secondary">🥈</span></td>
+                                <td><strong>S002</strong></td>
+                                <td>Fatima Khan</td>
+                                <td><span class="badge bg-primary">Senior</span></td>
+                                <td><span class="badge bg-success">A</span></td>
+                                <td><strong>88</strong></td>
+                            </tr>
+                            <tr class="table-warning" data-rank="3" data-category="Senior" data-grade="A" data-points="82">
+                                <td><span class="rank-badge bg-info">🥉</span></td>
+                                <td><strong>S003</strong></td>
+                                <td>Mohammad Hassan</td>
+                                <td><span class="badge bg-primary">Senior</span></td>
+                                <td><span class="badge bg-success">A</span></td>
+                                <td><strong>82</strong></td>
+                            </tr>
+                            <tr data-rank="4" data-category="Senior" data-grade="B+" data-points="75">
+                                <td><span class="rank-badge">4</span></td>
+                                <td>S004</td>
+                                <td>Aisha Rahman</td>
+                                <td><span class="badge bg-primary">Senior</span></td>
+                                <td><span class="badge bg-warning">B+</span></td>
+                                <td>75</td>
+                            </tr>
+                            <tr data-rank="5" data-category="Senior" data-grade="B" data-points="68">
+                                <td><span class="rank-badge">5</span></td>
+                                <td>S005</td>
+                                <td>Ibrahim Sheikh</td>
+                                <td><span class="badge bg-primary">Senior</span></td>
+                                <td><span class="badge bg-warning">B</span></td>
+                                <td>68</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sample Program Results - Junior -->
+            <div class="program-card" data-program="Classical Dance" data-category="Junior">
+                <div class="program-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">💃 Classical Dance Competition</h5>
+                            <small>Junior Category • Performing Arts</small>
+                        </div>
+                        <span class="results-count">4 Participants</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">Rank</th>
+                                <th style="width: 100px;">Chest No</th>
+                                <th>Contestant</th>
+                                <th>Category</th>
+                                <th style="width: 80px;">Grade</th>
+                                <th style="width: 80px;">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-success" data-rank="1" data-category="Junior" data-grade="A+" data-points="92">
+                                <td><span class="rank-badge bg-warning">🥇</span></td>
+                                <td><strong>J001</strong></td>
+                                <td><strong>Priya Sharma</strong></td>
+                                <td><span class="badge bg-info">Junior</span></td>
+                                <td><span class="badge bg-success">A+</span></td>
+                                <td><strong>92</strong></td>
+                            </tr>
+                            <tr class="table-info" data-rank="2" data-category="Junior" data-grade="A" data-points="85">
+                                <td><span class="rank-badge bg-secondary">🥈</span></td>
+                                <td><strong>J002</strong></td>
+                                <td>Rahul Kumar</td>
+                                <td><span class="badge bg-info">Junior</span></td>
+                                <td><span class="badge bg-success">A</span></td>
+                                <td><strong>85</strong></td>
+                            </tr>
+                            <tr class="table-warning" data-rank="3" data-category="Junior" data-grade="A-" data-points="78">
+                                <td><span class="rank-badge bg-info">🥉</span></td>
+                                <td><strong>J003</strong></td>
+                                <td>Sneha Patel</td>
+                                <td><span class="badge bg-info">Junior</span></td>
+                                <td><span class="badge bg-success">A-</span></td>
+                                <td><strong>78</strong></td>
+                            </tr>
+                            <tr data-rank="4" data-category="Junior" data-grade="B+" data-points="72">
+                                <td><span class="rank-badge">4</span></td>
+                                <td>J004</td>
+                                <td>Arjun Nair</td>
+                                <td><span class="badge bg-info">Junior</span></td>
+                                <td><span class="badge bg-warning">B+</span></td>
+                                <td>72</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- No Results Message (Hidden by default) -->
+            <div class="no-results" id="noResults" style="display: none;">
+                <div style="font-size: 4em; margin-bottom: 20px;">🔍</div>
+                <h5>No Results Found</h5>
+                <p class="text-muted">Try adjusting your search criteria or filters.</p>
+                <button class="btn btn-outline-primary" onclick="clearAllFilters()">Clear All Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Enhanced filtering and search functionality
+        class ResultsManager {
+            constructor() {
+                this.searchInput = document.getElementById('searchInput');
+                this.categoryFilter = document.getElementById('categoryFilter');
+                this.programFilter = document.getElementById('programFilter');
+                this.rankFilter = document.getElementById('rankFilter');
+                this.viewMode = document.getElementById('viewMode');
+                this.filterTags = document.querySelectorAll('.filter-tag');
+                this.programCards = document.querySelectorAll('.program-card');
+                this.noResults = document.getElementById('noResults');
+                this.resultsSummary = document.getElementById('resultsSummary');
+
+                this.initializeEvents();
+                this.updateSummary();
+            }
+
+            initializeEvents() {
+                // Search input
+                this.searchInput.addEventListener('input', () => this.applyFilters());
+                
+                // Filter dropdowns
+                this.categoryFilter.addEventListener('change', () => this.applyFilters());
+                this.programFilter.addEventListener('change', () => this.applyFilters());
+                this.rankFilter.addEventListener('change', () => this.applyFilters());
+                this.viewMode.addEventListener('change', () => this.applyViewMode());
+
+                // Filter tags
+                this.filterTags.forEach(tag => {
+                    tag.addEventListener('click', () => this.toggleFilterTag(tag));
+                });
+            }
+
+            toggleFilterTag(tag) {
+                tag.classList.toggle('active');
+                this.applyFilters();
+            }
+
+            applyViewMode() {
+                const mode = this.viewMode.value;
+                // This would reorganize the data display based on view mode
+                // Implementation would depend on your data structure
+                console.log('View mode changed to:', mode);
+                this.applyFilters();
+            }
+
+            applyFilters() {
+                const searchTerm = this.searchInput.value.toLowerCase();
+                const categoryFilter = this.categoryFilter.value.toLowerCase();
+                const programFilter = this.programFilter.value.toLowerCase();
+                const rankFilter = this.rankFilter.value;
+                
+                // Get active filter tags
+                const activeFilters = Array.from(this.filterTags)
+                    .filter(tag => tag.classList.contains('active'))
+                    .map(tag => tag.dataset.filter);
+
+                let visibleCount = 0;
+
+                this.programCards.forEach(card => {
+                    let showCard = true;
+                    
+                    // Program filter
+                    if (programFilter && !card.dataset.program.toLowerCase().includes(programFilter)) {
+                        showCard = false;
+                    }
+                    
+                    // Category filter
+                    if (categoryFilter && !card.dataset.category.toLowerCase().includes(categoryFilter)) {
+                        showCard = false;
+                    }
+
+                    // Search in card content
+                    if (searchTerm) {
+                        const cardText = card.textContent.toLowerCase();
+                        if (!cardText.includes(searchTerm)) {
+                            showCard = false;
+                        }
+                    }
+
+                    // Apply row-level filters
+                    const rows = card.querySelectorAll('tbody tr');
+                    let visibleRows = 0;
+
+                    rows.forEach(row => {
+                        let showRow = showCard;
+                        
+                        if (showRow && rankFilter) {
+                            const rank = parseInt(row.dataset.rank);
+                            if (rankFilter === 'other' && rank <= 3) {
+                                showRow = false;
+                            } else if (rankFilter !== 'other' && rank !== parseInt(rankFilter)) {
+                                showRow = false;
+                            }
+                        }
+
+                        // Apply filter tag logic
+                        if (showRow && activeFilters.length > 0) {
+                            activeFilters.forEach(filter => {
+                                switch (filter) {
+                                    case 'winners':
+                                        if (parseInt(row.dataset.rank) > 3) showRow = false;
+                                        break;
+                                    case 'grade-a':
+                                        if (!row.dataset.grade.startsWith('A')) showRow = false;
+                                        break;
+                                    case 'high-points':
+                                        if (parseInt(row.dataset.points) < 80) showRow = false;
+                                        break;
+                                    case 'senior':
+                                        if (row.dataset.category !== 'Senior') showRow = false;
+                                        break;
+                                    case 'junior':
+                                        if (row.dataset.category !== 'Junior') showRow = false;
+                                        break;
+                                }
+                            });
+                        }
+
+                        // Highlight search terms
+                        if (showRow && searchTerm) {
+                            this.highlightSearchTerm(row, searchTerm);
+                        }
+
+                        row.style.display = showRow ? '' : 'none';
+                        if (showRow) visibleRows++;
+                    });
+
+                    // Hide card if no visible rows
+                    if (visibleRows === 0) {
+                        showCard = false;
+                    }
+
+                    card.style.display = showCard ? '' : 'none';
+                    if (showCard) visibleCount++;
+                });
+
+                // Show/hide no results message
+                this.noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+                
+                // Update summary
+                this.updateSummary();
+            }
+
+            highlightSearchTerm(row, searchTerm) {
+                // Remove existing highlights
+                row.innerHTML = row.innerHTML.replace(/<span class="search-highlight">(.*?)<\/span>/g, '$1');
+                
+                // Add new highlights
+                const regex = new RegExp(`(${searchTerm})`, 'gi');
+                row.innerHTML = row.innerHTML.replace(regex, '<span class="search-highlight">$1</span>');
+            }
+
+            updateSummary() {
+                const visibleCards = document.querySelectorAll('.program-card:not([style*="display: none"])');
+                const visibleRows = document.querySelectorAll('tbody tr:not([style*="display: none"])');
+                const categories = new Set();
+                const winners = document.querySelectorAll('tbody tr[data-rank="1"]:not([style*="display: none"])');
+
+                visibleRows.forEach(row => {
+                    categories.add(row.dataset.category);
+                });
+
+                const summaryCards = this.resultsSummary.querySelectorAll('.stats-card div:first-child');
+                summaryCards[0].textContent = visibleRows.length;
+                summaryCards[1].textContent = visibleCards.length;
+                summaryCards[2].textContent = categories.size;
+                summaryCards[3].textContent = winners.length;
+            }
+        }
+
+        // Initialize the results manager
+        const resultsManager = new ResultsManager();
+
+        // Additional utility functions
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('programFilter').value = '';
+            document.getElementById('rankFilter').value = '';
+            
+            document.querySelectorAll('.filter-tag.active').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            
+            resultsManager.applyFilters();
+        }
+
+        function downloadPDF() {
+            // This would call your Django PDF generation endpoint
+            window.open('/results/pdf/', '_blank');
+        }
+    </script>
+</body>
+</html>

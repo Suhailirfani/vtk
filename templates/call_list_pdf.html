@@ -187,11 +187,11 @@
     
     <div class="info-section">
         <strong>Program Schedule Information:</strong><br>
-        Program: <strong>{{ program.name }}</strong><br>
-        Category: <strong>{{ program.category.name }}</strong><br>
+        Program: <strong>{{ program.name|upper }}</strong><br>
+        Category: <strong>{{ program.category.name|upper }}</strong><br>
         <strong>Date:</strong> {% now "F d, Y H:i A" %}<br>
         Total Participants: <strong>{{ participants.count }}</strong><br>
-        {% if is_team_user %}Team: <strong>{{ team_name }}</strong><br>{% endif %}
+        {% if is_team_user %}Team: <strong>{{ team_name|upper }}</strong><br>{% endif %}
         Venue: _________________________ &nbsp;&nbsp; Time: _________________________
     </div>
 

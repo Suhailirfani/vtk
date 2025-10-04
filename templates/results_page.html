@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
-
-{% block content %}
-<style>
+ {% block content %}
+ <style>
   :root {
     --primary-blue: rgba(3, 48, 103, 0.95);
     --primary-light: rgba(3, 48, 103, 0.1);
@@ -52,17 +51,16 @@
     font-size: 1.5rem;
   }
 
-  .team-title {
+  .app-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .admin-title{
     font-size: 1.3rem;
     font-weight: 600;
     margin: 0;
     color: white;
-  }
-
-  .team-subtitle {
-    font-size: 0.9rem;
-    color: rgba(255,255,255,0.8);
-    margin: 0;
   }
 
   .header-actions {
@@ -88,24 +86,6 @@
 
   .header-btn:hover {
     background: rgba(255,255,255,0.3);
-    color: white;
-  }
-
-  .logout-btn {
-    background: var(--danger-red);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 500;
-    text-decoration: none;
-    text-align: center;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-  }
-
-  .logout-btn:hover {
-    background: #c82333;
     color: white;
   }
 
@@ -182,91 +162,165 @@
     transform: translateY(0);
   }
 
-  .contestants-grid {
-    display: grid;
-    gap: 1rem;
+  .list-container {
+    max-height: 300px;
+    overflow-y: auto;
   }
 
-  .category-card {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-light);
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-
-  .category-header {
-    background: linear-gradient(135deg, var(--accent-blue), #0056b3);
-    color: white;
-    padding: 1rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .contestants-list {
-    padding: 0;
-  }
-
-  .contestant-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #f0f0f0;
+  .list-item {
+    background: var(--light-gray);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-blue);
     transition: all 0.2s ease;
   }
 
-  .contestant-item:last-child {
-    border-bottom: none;
-  }
-
-  .contestant-item:hover {
-    background: var(--light-gray);
+  .list-item:hover {
+    background: #e9ecef;
     transform: translateX(2px);
   }
 
-  .contestant-info {
+  .list-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .list-item-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+  }
+
+  .list-item-subtitle {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .pending-user {
+    background: linear-gradient(135deg, rgba(255,193,7,0.1), rgba(255,193,7,0.05));
+    border: 1px solid rgba(255,193,7,0.3);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
   }
 
-  .contestant-number {
-    background: var(--accent-blue);
-    color: white;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: 600;
+  .pending-user-info {
+    flex: 1;
   }
 
-  .contestant-name {
+  .user-name {
     font-weight: 600;
     color: #333;
-    font-size: 1rem;
   }
 
-  .chest-badge {
-    background: linear-gradient(135deg, var(--warning-orange), #e67e00);
+  .user-email {
+    color: #666;
+    font-size: 0.95rem;
+  }
+
+  .approve-btn {
+    background: var(--success-green);
     color: white;
-    padding: 0.3rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .approve-btn:hover {
+    background: #218838;
+    color: white;
+    transform: scale(1.05);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .bottom-actions {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    margin: 1rem -0.5rem -0.5rem -0.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+  }
+
+  .primary-action {
+    background: linear-gradient(135deg, var(--accent-blue), #0056b3);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .primary-action:hover {
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .secondary-action {
+    background: var(--light-gray);
+    color: var(--accent-blue);
+    border: 1px solid #dee2e6;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .secondary-action:hover {
+    background: #e9ecef;
+    color: var(--accent-blue);
+  }
+
+  .logout-btn {
+    background: var(--danger-red);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .logout-btn:hover {
+    background: #c82333;
+    color: white;
   }
 
   .stats-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: 0.5rem;
     margin-bottom: 1rem;
   }
@@ -291,30 +345,14 @@
     margin-top: 0.25rem;
   }
 
-  .empty-state {
-    text-align: center;
-    padding: 2rem;
-    color: #666;
-  }
-
-  .empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-  }
-
   /* Mobile Optimizations */
   @media (max-width: 768px) {
     body {
-      font-size: 16px;
+      font-size: 16px; /* Prevent iOS zoom on form inputs */
     }
 
-    .team-title {
-      font-size: 1.2rem;
-    }
-
-    .team-subtitle {
-      font-size: 0.8rem;
+    .app-title {
+      font-size: 1.4rem;
     }
 
     .main-container {
@@ -333,13 +371,9 @@
 
     .operation-btn {
       padding: 0.8rem 0.5rem;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       min-height: 65px;
       font-weight: 600;
-    }
-
-    .contestants-grid {
-      grid-template-columns: 1fr;
     }
 
     .card-header {
@@ -350,24 +384,60 @@
 
     .card-body {
       padding: 1rem;
-    }
-
-    .contestant-item {
-      padding: 0.8rem 1rem;
-    }
-
-    .contestant-name {
       font-size: 1rem;
+    }
+
+    .list-item {
+      padding: 0.8rem;
+    }
+
+    .list-item-title {
+      font-size: 1.05rem;
       font-weight: 600;
     }
 
-    .chest-badge {
-      font-size: 0.8rem;
-      padding: 0.35rem 0.7rem;
+    .list-item-subtitle {
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .user-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .user-email {
+      font-size: 0.95rem;
+    }
+
+    .approve-btn {
+      font-size: 1rem;
+      padding: 0.7rem 1.3rem;
+      font-weight: 600;
+    }
+
+    .pending-user {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+      gap: 0.75rem;
+      padding: 1.2rem;
+    }
+
+    .bottom-actions {
+      grid-template-columns: 1fr;
+      gap: 0.6rem;
+      padding: 1rem;
+    }
+
+    .primary-action, .secondary-action, .logout-btn {
+      font-size: 1rem;
+      padding: 0.9rem 1rem;
+      font-weight: 600;
     }
 
     .stats-bar {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       margin-bottom: 1.2rem;
     }
 
@@ -376,11 +446,11 @@
     }
 
     .stat-number {
-      font-size: 1.6rem;
+      font-size: 1.8rem;
     }
 
     .stat-label {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       margin-top: 0.4rem;
     }
 
@@ -390,9 +460,13 @@
       height: 44px;
     }
 
-    .logout-btn {
-      font-size: 0.9rem;
-      padding: 0.5rem 0.8rem;
+    .empty-state {
+      padding: 2.5rem;
+      font-size: 1rem;
+    }
+
+    .empty-state-icon {
+      font-size: 3.5rem;
     }
   }
 
@@ -406,8 +480,8 @@
       grid-template-columns: repeat(3, 1fr);
     }
 
-    .contestants-grid {
-      grid-template-columns: repeat(2, 1fr);
+    .bottom-actions {
+      grid-template-columns: 1fr 1fr auto;
     }
   }
 
@@ -418,7 +492,7 @@
     }
 
     .dashboard-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
       align-items: start;
     }
 
@@ -430,8 +504,12 @@
       grid-template-columns: repeat(5, 1fr);
     }
 
-    .contestants-grid {
-      grid-template-columns: repeat(2, 1fr);
+    .bottom-actions {
+      position: relative;
+      margin: 1rem 0 0 0;
+      grid-template-columns: 1fr 1fr auto;
+      box-shadow: var(--shadow-light);
+      border-radius: var(--border-radius);
     }
 
     .mobile-header {
@@ -456,46 +534,12 @@
 
   /* Focus styles for keyboard navigation */
   .operation-btn:focus,
-  .header-btn:focus {
+  .header-btn:focus,
+  .approve-btn:focus {
     outline: 2px solid #fff;
     outline-offset: 2px;
   }
 </style>
-
-<!-- Mobile Header -->
-<div class="mobile-header">
-  <div class="header-content">
-    <div class="logo-section">
-      <span class="logo-icon">👥</span>
-      <div>
-        <h1 class="team-title">{{ team.name }}</h1>
-        <div class="team-subtitle">Team Dashboard</div>
-      </div>
-    </div>
-    <div class="header-actions">
-      <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
-    </div>
-  </div>
-</div>
-
-<div class="main-container">
-  <!-- Stats Bar -->
-  <div class="stats-bar">
-    {% regroup contestants by category as contestants_by_category %}
-    <div class="stat-item">
-      <div class="stat-number">{{ contestants|length }}</div>
-      <div class="stat-label">Contestants</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">{{ contestants_by_category|length }}</div>
-      <div class="stat-label">Categories</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">5</div>
-      <div class="stat-label">Operations</div>
-    </div>
-  </div>
-
   <div class="dashboard-grid">
     <!-- Operations Card -->
     <div class="card operations-card">
@@ -505,58 +549,12 @@
       </div>
       <div class="card-body">
         <div class="operations-grid">
-          <a href="{% url 'participant_list' %}" class="operation-btn">Participant List</a>
-          <a href="{% url 'program_list' %}" class="operation-btn">Program List</a>
-          <a href="{% url 'assign_programs' %}" class="operation-btn">Assign Programme</a>
-          <a href="{% url 'assigned_programs' %}" class="operation-btn">Assigned Programs</a>
-          <a href="{% url 'team_marks_summary' %}" class="operation-btn">Team Marks Summary</a>
+          
+          <a href="{% url 'view_results' %}" class="operation-btn">View Results Program wise</a>
+          <a href="{% url 'enter_marks_summary' %}" class="operation-btn">Marks Summary</a>
           <a href="{% url 'team_leaderboard' %}" class="operation-btn">Leaderboard</a>
           <a href="{% url 'contestant_points_list' %}" class="operation-btn" >individual</a>
         </div>
       </div>
     </div>
-
-    <!-- Contestants Section -->
-    <div class="contestants-grid">
-      {% regroup contestants by category as contestants_by_category %}
-      {% for category in contestants_by_category %}
-      <div class="category-card">
-        <div class="category-header">
-          <span>🏷️</span>
-          <span>{{ category.grouper }} ({{ category.list|length }})</span>
-        </div>
-        <div class="contestants-list">
-          {% for contestant in category.list %}
-          <div class="contestant-item">
-            <div class="contestant-info">
-              <div class="contestant-number">{{ forloop.counter }}</div>
-              <div class="contestant-name">{{ contestant.name|upper }}</div>
-            </div>
-            <div class="chest-badge">
-              <span>🏷️</span>
-              <span>{{ contestant.chest_no }}</span>
-            </div>
-          </div>
-          {% empty %}
-          <div class="empty-state">
-            <div class="empty-state-icon">👤</div>
-            <div>No contestants in this category</div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% empty %}
-      <div class="card">
-        <div class="card-body">
-          <div class="empty-state">
-            <div class="empty-state-icon">👥</div>
-            <div>No contestants registered yet</div>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-
-{% endblock %}
+     {% endblock  %}

@@ -17,8 +17,26 @@ class AdminProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     designation = models.CharField(max_length=100, default='Coordinator')
 
+
+# -------------------campus - offcampus separation ----------------
+class Competition(models.Model):
+    COMPETITION_TYPES = [
+        ("ON", "On-Campus"),
+        ("OFF", "Off-Campus"),
+    ]
+    name = models.CharField(max_length=100)
+    type = models.CharField(max_length=3, choices=COMPETITION_TYPES)
+    year = models.PositiveIntegerField(default=2025)  # optional, if yearly fest
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_type_display()})"
+
+
 # ----------------- Team -----------------
 class Team(models.Model):
+    competition = models.ForeignKey(Competition, on_delete=models.CASCADE, null=True, blank=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     total_points = models.IntegerField(default=0)
@@ -32,9 +50,11 @@ class Category(models.Model):
 
 # ----------------- Program -----------------
 class Program(models.Model):
+    competition = models.ForeignKey(Competition, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     is_group = models.BooleanField(default=False, null=True)
+    members_count = models.PositiveIntegerField(null=True, blank=True)
 
     def __str__(self): return f"{self.name} - {self.category.name}"
 

@@ -1,6 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
 <h1>{{ categories|length }} Categories</h1>
 <h1>{{ programs|length }} Programs</h1>
 <h1>{{ contestants|length }} Contestants</h1>
 <h1>{{ participations|length }} Programs Assigned</h1>
-<h1>{{ group_participations|length }} Group Programs Assigned</h1>
+<!-- <a href="{% url 'dashboard_off_campus' %}" class="btn btn-primary">Off Campus leader</a> -->
+ <a href="{% url 'add_category_off' %}">Add Category</a>
 
+{% endblock %}

@@ -67,45 +67,26 @@
                             <th>Grade</th>
                             <th>Rank</th>
                             <th>Points</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for p in winners %}
+                        {% for rec in winners %}
                         <tr>
-                            <td><span class="badge bg-secondary">{{ p.program.name }}</span></td>
-                            <td><strong>{{ p.contestant.name }}</strong></td>
-                            <td>{{ p.contestant.chest_no }}</td>
+                            <td><span class="badge bg-secondary">{{ rec.p.program.name }}</span></td>
+                            <td><strong>{{ rec.p.contestant.name }}</strong></td>
+                            <td>{{ rec.p.contestant.chest_no }}</td>
+                            <td>{{ rec.p.marks }}</td>
+                            <td>{{ rec.p.grade }}</td>
                             <td>
-                                <span class="badge {% if p.marks >= 80 %}bg-success{% elif p.marks >= 60 %}bg-info{% else %}bg-warning{% endif %}">
-                                    {{ p.marks }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% else %}bg-warning{% endif %}">
-                                    {{ p.grade }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if p.rank == 1 %}🥇 1st
-                                {% elif p.rank == 2 %}🥈 2nd
-                                {% elif p.rank == 3 %}🥉 3rd
+                                {% if rec.p.rank == 1 %}🥇 1st
+                                {% elif rec.p.rank == 2 %}🥈 2nd
+                                {% elif rec.p.rank == 3 %}🥉 3rd
+                                {% else %}{{ rec.p.rank }}
                                 {% endif %}
                             </td>
-                            <td>
-                                <span class="badge bg-primary">
-                                    {% if p.rank == 1 and p.grade == 'A' %}12
-                                    {% elif p.rank == 1 and p.grade == 'B' %}9
-                                    {% elif p.rank == 1 and p.grade == 'C' %}7
-                                    {% elif p.rank == 2 and p.grade == 'A' %}9
-                                    {% elif p.rank == 2 and p.grade == 'B' %}6
-                                    {% elif p.rank == 2 and p.grade == 'C' %}4
-                                    {% elif p.rank == 3 and p.grade == 'A' %}7
-                                    {% elif p.rank == 3 and p.grade == 'B' %}4
-                                    {% elif p.rank == 3 and p.grade == 'C' %}2
-                                    {% else %}0
-                                    {% endif %} pts
-                                </span>
-                            </td>
+                            <td><span class="badge bg-primary">{{ rec.points }} pts</span></td>
+                            <td>{{ rec.status }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -138,56 +119,21 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for p in participants %}
-                            <tr {% if p.rank <= 3 %}class="table-warning"{% endif %}>
-                                <td>{{ p.contestant.name }}</td>
-                                <td>{{ p.contestant.chest_no }}</td>
-                                <td>{{ p.marks }}</td>
+                            {% for rec in participants %}
+                            <tr {% if rec.p.rank and rec.p.rank <= 3 %}class="table-warning"{% endif %}>
+                                <td>{{ rec.p.contestant.name }}</td>
+                                <td>{{ rec.p.contestant.chest_no }}</td>
+                                <td>{{ rec.p.marks }}</td>
+                                <td>{{ rec.p.grade }}</td>
                                 <td>
-                                    {% if p.grade %}
-                                        <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% else %}bg-warning{% endif %}">
-                                            {{ p.grade }}
-                                        </span>
+                                    {% if rec.p.rank <= 3 %}
+                                        {% if rec.p.rank == 1 %}🥇{% elif rec.p.rank == 2 %}🥈{% elif rec.p.rank == 3 %}🥉{% endif %} {{ rec.p.rank }}
                                     {% else %}
-                                        <span class="text-muted">-</span>
+                                        {{ rec.p.rank }}
                                     {% endif %}
                                 </td>
-                                <td>
-                                    {% if p.rank <= 3 %}
-                                        {% if p.rank == 1 %}🥇{% elif p.rank == 2 %}🥈{% elif p.rank == 3 %}🥉{% endif %} {{ p.rank }}
-                                    {% else %}
-                                        {{ p.rank }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if p.points_awarded %}
-                                        <span class="badge bg-success">
-                                            {% if p.rank == 1 and p.grade == 'A' %}12
-                                            {% elif p.rank == 1 and p.grade == 'B' %}9
-                                            {% elif p.rank == 1 and p.grade == 'C' %}7
-                                            {% elif p.rank == 2 and p.grade == 'A' %}9
-                                            {% elif p.rank == 2 and p.grade == 'B' %}6
-                                            {% elif p.rank == 2 and p.grade == 'C' %}4
-                                            {% elif p.rank == 3 and p.grade == 'A' %}7
-                                            {% elif p.rank == 3 and p.grade == 'B' %}4
-                                            {% elif p.rank == 3 and p.grade == 'C' %}2
-                                            {% elif p.grade == 'A' %}6
-                                            {% elif p.grade == 'B' %}3
-                                            {% elif p.grade == 'C' %}1
-                                            {% else %}0
-                                            {% endif %} pts
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">Not awarded</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if p.points_awarded %}
-                                        <span class="text-success">✅ Awarded</span>
-                                    {% else %}
-                                        <span class="text-warning">⏳ Pending</span>
-                                    {% endif %}
-                                </td>
+                                <td><span class="badge bg-success">{{ rec.points }} pts</span></td>
+                                <td>{{ rec.status }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -203,7 +149,7 @@
         </div>
     </div>
     
-    <!-- All Participations Summary -->
+    <!-- Other Participations -->
     {% if others %}
     <div class="card">
         <div class="card-header">
@@ -220,31 +166,19 @@
                             <th>Grade</th>
                             <th>Rank</th>
                             <th>Points</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for p in others %}
+                        {% for rec in others %}
                         <tr>
-                            <td><span class="badge bg-secondary">{{ p.program.name }}</span></td>
-                            <td>{{ p.contestant.name }}</td>
-                            <td>{{ p.marks }}</td>
-                            <td>
-                                {% if p.grade %}
-                                    <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% else %}bg-warning{% endif %}">
-                                        {{ p.grade }}
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td>{{ p.rank }}</td>
-                            <td>
-                                {% if p.points_awarded and p.grade %}
-                                    <span class="badge bg-secondary">
-                                        {% if p.grade == 'A' %}6{% elif p.grade == 'B' %}3{% elif p.grade == 'C' %}1{% endif %} pts
-                                    </span>
-                                {% else %}
-                                    <span class="text-muted">0 pts</span>
-                                {% endif %}
-                            </td>
+                            <td><span class="badge bg-secondary">{{ rec.p.program.name }}</span></td>
+                            <td>{{ rec.p.contestant.name }}</td>
+                            <td>{{ rec.p.marks }}</td>
+                            <td>{{ rec.p.grade }}</td>
+                            <td>{{ rec.p.rank }}</td>
+                            <td><span class="badge bg-secondary">{{ rec.points }} pts</span></td>
+                            <td>{{ rec.status }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
