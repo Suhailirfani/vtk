@@ -457,9 +457,14 @@
       <div class="card-body">
         <div class="list-container">
           {% for program in programs %}
-          <div class="list-item">
-            <div class="list-item-title">{{ program.name|upper }}</div>
-            <div class="list-item-subtitle">{{ program.category.name|upper }} • {{ program.stage|upper }} • {{ program.schedule_time }}</div>
+          <div class="list-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div>
+              <div class="list-item-title">{{ program.name|upper }}</div>
+              <div class="list-item-subtitle">{{ program.category.name|upper }} • {{ program.stage|upper }} • {{ program.schedule_time }}</div>
+            </div>
+            <a href="{% url 'edit_program' program.id %}" class="btn btn-sm btn-outline-warning rounded-circle" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0; min-width: 32px;" title="Edit Program">
+              <i class="fas fa-pen" style="font-size: 0.85rem;"></i>
+            </a>
           </div>
           {% empty %}
           <div class="empty-state">

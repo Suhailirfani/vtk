@@ -1,27 +1,39 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-5">
-    <h2>Edit Program</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="card-title mb-0"><i class="fas fa-edit me-2"></i>Edit Program Details</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="name" class="form-label fw-bold text-secondary">Program Name</label>
+                            <input type="text" name="name" id="name" value="{{ program.name }}" class="form-control form-control-lg border-secondary-subtle" placeholder="Enter program name" required>
+                        </div>
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="name">Program Name</label>
-            <input type="text" name="name" id="name" value="{{ program.name }}" class="form-control">
+                        <div class="mb-4">
+                            <label for="category" class="form-label fw-bold text-secondary">Select Category</label>
+                            <select name="category" id="category" class="form-select form-select-lg border-secondary-subtle" required>
+                                {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if program.category.id == category.id %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
+                            <a href="{% url 'program_list' %}" class="btn btn-outline-secondary px-4"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
+                            <button type="submit" class="btn btn-success px-4"><i class="fas fa-save me-2"></i>Update Program</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <div class="mb-3">
-            <label for="category">Select Category</label>
-            <select name="category" id="category" class="form-select">
-                {% for category in categories %}
-                    <option value="{{ category.id }}" {% if program.category.id == category.id %}selected{% endif %}>
-                        {{ category.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Update Program</button>
-    </form>
+    </div>
 </div>
 {% endblock %}
