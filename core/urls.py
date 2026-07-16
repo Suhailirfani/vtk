@@ -12,6 +12,7 @@ urlpatterns = [
     path('admin_dashboard/', views.dashboard_admin, name='dashboard_admin'),
     path('team_dashboard/', views.dashboard_team, name='dashboard_team'),
     path('add_contestant/', views.add_contestant, name='add_contestant'),
+    
     # path('assign_competition/', views.assign_competition, name='assign_competition'),
     path('assign/', views.assign_programs, name='assign_programs'),
     path('edit-programs/<int:contestant_id>/', views.edit_assigned_programs, name='edit_assigned_programs'),
@@ -21,6 +22,7 @@ urlpatterns = [
     path('assign-group-program/', views.assign_group_program, name='assign_group_program'),
     path('ajax/get-group-programs/', views.get_group_programs, name='get_group_programs'),
     path('ajax/get-participants/', views.get_participants_by_category, name='get_participants_by_category'),
+    
     path('enter_marks_summary/', views.enter_marks_summary, name='enter_marks_summary'),
     path('results/', views.results_view, name='results'),
     path('export_excel/', views.export_excel, name='export_excel'),
@@ -39,9 +41,11 @@ urlpatterns = [
     path('delete-category/<int:category_id>/', views.delete_category, name='delete_category'),
     path('add-program/', views.add_program, name='add_program'),
     path('edit-program/<int:program_id>/', views.edit_program, name='edit_program'),
+    
     path('delete-program/<int:program_id>/', views.delete_program, name='delete_program'), 
     path('bulk-delete-programs/', views.bulk_delete_programs, name='bulk_delete_programs'),
     path('program_list/', views.program_list, name='program_list'),
+    
     path('participants/', views.participant_list, name='participant_list'),
     path('participants/add/', views.add_participant, name='add_participant'),
     path('participants/edit/<int:id>/', views.edit_participant, name='edit_participant'),
@@ -59,8 +63,9 @@ urlpatterns = [
     path('team-detail/<int:team_id>/', views.team_detail, name='team_detail'),
     path('team_marks_summary/', views.team_marks_summary, name='team_marks_summary'),
     path('download/pdf/', views.download_participants_pdf, name='download_participants_pdf'),
-    path('api/programs-by-category/', views.get_programs_by_category, name='programs_by_category'),
-    path('participants/', views.participant_list, name='participant_list'),
+    
+    path('api/programs-by-category/', views.get_programs_by_category, name='programs_by_category'), 
+    
     path('participants/category/', views.participants_by_category, name='participants_by_category'),
     path('participants/team/', views.participants_by_team, name='participants_by_team'),
     path('download/pdf/green_room_sign/<int:program_id>/', views.download_green_room_pdf, name='green_room_sign'),
@@ -71,11 +76,12 @@ urlpatterns = [
     path('all-green-room-lists/', views.all_green_room_lists, name='all_green_room_lists'),
     path('download/all-valuation-forms/', views.download_all_valuation_forms_pdf, name='download_all_valuation_forms_pdf'),
     path('download/all-green-room-lists', views.download_all_green_room_pdf, name='download_all_green_room_pdf'),
+
     path('chest_number/', views.chest_number, name='chest_number'),
     # path('download-chest-cards/', views.download_chest_cards_pdf, name='download_chest_cards_pdf'),
     path('download/chest-cards/', views.download_chest_cards_pdf, name='download_chest_cards'),
     path('assigned-programs/pdf/', views.assigned_programs_pdf, name='assigned_programs_pdf'),
-     # Group Program URLs
+    # Group Program URLs
     path('group-participation/create/', views.create_group_participation, name='create_group_participation'),
     path('group-participation/', views.group_participation_list, name='group_participation_list'),
     path('group-participation/<int:group_id>/marks/', views.add_group_marks, name='add_group_marks'),
@@ -103,6 +109,8 @@ urlpatterns = [
     path('contestant-programs-pdf/', views.contestant_programs_pdf_xml, name='contestant_programs_pdf'),
     path('enter-marks-sum-cat/', views.enter_marks_summary_cat, name='enter_marks_summary_cat'),
     path('program_result_pdf/<int:program_id>/', views.program_result_pdf, name='program_result_pdf'),
+    
+    # Custom setting route
     path('update-settings/', views.update_settings, name='update_settings'),
 
     #added on 23-09-2025
@@ -110,4 +118,4 @@ urlpatterns = [
     path('edit-programs/<int:contestant_id>/', views.edit_assigned_programs, name='edit_assigned_programs'),
     path('assigned-programs/delete/<int:participation_id>/', views.delete_assigned_program, name='delete_assigned_program'),
     path('program_list/', views.program_list, name='program_list'),
-]
+]

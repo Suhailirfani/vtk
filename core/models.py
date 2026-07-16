@@ -97,7 +97,7 @@ class Participation(models.Model):
     rank = models.PositiveIntegerField(null=True, blank=True)
     grade = models.CharField(max_length=1, null=True, blank=True)
     points_awarded = models.BooleanField(default=False)
-    marks_added_at = models.DateTimeField(default=timezone.now, null=True, blank=True)  # 👈 here
+    marks_added_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
    
     def __str__(self):
         return f"{self.contestant.name} ({self.program.name})"    
@@ -190,4 +190,3 @@ class SystemSetting(models.Model):
             return cls.objects.get(key=key).value
         except cls.DoesNotExist:
             return default
-

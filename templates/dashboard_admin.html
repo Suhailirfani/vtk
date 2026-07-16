@@ -577,34 +577,32 @@
   </div>
 
   <!-- Settings Card -->
-  <div class="card mb-4 border-warning shadow-sm">
-    <div class="card-header bg-warning text-dark d-flex align-items-center py-3">
-      <i class="fas fa-cogs me-2"></i>
-      <span class="fw-bold">Group Point System Configuration</span>
+  <div class="card mb-4" style="grid-column: 1 / -1; margin-bottom: 1.5rem;">
+    <div class="card-header">
+      <span>⚙️</span>
+      <span style="font-weight: bold;">Group Point System Configuration</span>
     </div>
-    <div class="card-body p-4">
+    <div class="card-body" style="padding: 1.5rem;">
       <form method="post" action="{% url 'update_settings' %}">
         {% csrf_token %}
-        <div class="row align-items-center">
-          <div class="col-lg-8 col-md-7">
-            <div class="mb-2">
-              <label class="form-label fw-bold text-dark mb-2">Select Group Point System:</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input border-secondary" type="radio" name="group_point_system" id="system_member_count" value="member_count" {% if group_point_system == 'member_count' %}checked{% endif %}>
-              <label class="form-check-label text-dark cursor-pointer" for="system_member_count">
-                <strong>Participant Count Multiplier</strong> <span class="text-muted">(Current: Points = Rank Multiplier × Member Count)</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+          <div>
+            <div style="margin-bottom: 0.75rem; font-weight: bold; color: #333;">Select Group Point System:</div>
+            <div style="margin-bottom: 0.5rem;">
+              <input type="radio" name="group_point_system" id="system_member_count" value="member_count" {% if group_point_system == 'member_count' %}checked{% endif %} style="cursor: pointer; margin-right: 0.5rem;">
+              <label for="system_member_count" style="cursor: pointer; color: #555;">
+                <strong>Participant Count Multiplier</strong> (Points = Rank Multiplier × Member Count)
               </label>
             </div>
-            <div class="form-check">
-              <input class="form-check-input border-secondary" type="radio" name="group_point_system" id="system_fixed" value="fixed" {% if group_point_system == 'fixed' %}checked{% endif %}>
-              <label class="form-check-label text-dark cursor-pointer" for="system_fixed">
-                <strong>Fixed Rank Points</strong> <span class="text-muted">(1st Rank: 10, 2nd Rank: 6, 3rd Rank: 3)</span>
+            <div>
+              <input type="radio" name="group_point_system" id="system_fixed" value="fixed" {% if group_point_system == 'fixed' %}checked{% endif %} style="cursor: pointer; margin-right: 0.5rem;">
+              <label for="system_fixed" style="cursor: pointer; color: #555;">
+                <strong>Fixed Rank Points</strong> (1st Rank: 10, 2nd Rank: 6, 3rd Rank: 3)
               </label>
             </div>
           </div>
-          <div class="col-lg-4 col-md-5 text-md-end mt-3 mt-md-0">
-            <button type="submit" class="btn btn-warning fw-bold text-dark px-4 py-2 shadow-sm"><i class="fas fa-save me-2"></i>Save Configuration</button>
+          <div>
+            <button type="submit" class="btn btn-primary" style="background: var(--accent-blue); color: white; border: none; padding: 0.6rem 1.8rem; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s;">Save Configuration</button>
           </div>
         </div>
       </form>

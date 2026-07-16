@@ -11,6 +11,7 @@ admin.site.register(Participation)
 admin.site.register(TeamPoints)
 admin.site.register(Competition)
 admin.site.register(SystemSetting)
+
 # Custom User admin
 class UserAdmin(BaseUserAdmin):
     list_display = ('username', 'email', 'role', 'is_active')
