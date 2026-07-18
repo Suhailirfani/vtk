@@ -1,656 +1,248 @@
-<!DOCTYPE html>
-<html lang="en">
-    {% load static %}
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#033067">
+{% extends 'base.html' %}
+{% load static %}
 
-    <!-- PWA & Mobile Web App Settings -->
-    <link rel="manifest" href="{% url 'manifest_json' %}">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="HIMHS Fest">
-    <link rel="apple-touch-icon" href="{% static 'FDL.png' %}">
+{% block content %}
+<style>
+    /* Custom Landing Page Enhancements matching Logged-in Dashboard */
+    .landing-hero {
+        text-align: center;
+        padding: 2rem 1rem;
+        background: radial-gradient(circle at center, rgba(3, 48, 103, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 2rem;
+    }
 
-    <link rel="icon" type="image/png" href="{% static 'kubba.png' %}">
-    <!-- Malayalam fonts: Noto Sans Malayalam (clean) + Manjari (display) -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600;700&display=swap" rel="stylesheet">
+    .fest-hero-title {
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 800;
+        color: var(--primary-blue);
+        letter-spacing: -0.5px;
+        margin-bottom: 0.5rem;
+    }
 
-    <title>{{ fest_name }}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #fff;
-            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-            overflow-x: hidden;
-        }
-
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-        }
-
-        .floating {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        .fade-in {
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 0.8s ease forwards;
-        }
-
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Header */
-        header {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000;
-            padding: 1rem 2rem;
-            transition: all 0.3s ease;
-        }
-
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-        }
-
-        .nav-links a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 0.5rem 1rem;
-            border-radius: 10px;
-        }
-
-        .nav-links a:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .cta-nav {
-            background: linear-gradient(45deg, #667eea, #764ba2) !important;
-            color: #fff !important;
-            padding: 0.7rem 1.5rem !important;
-            border-radius: 25px !important;
-            font-weight: 600;
-            transform: scale(1);
-            transition: all 0.3s ease;
-        }
-
-        .cta-nav:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-
-        /* Hero Section */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2rem;
-            position: relative;
-        }
-
-        .hero-content {
-            max-width: 800px;
-            z-index: 2;
-        }
-
-        .hero h1 {
-            font-size: clamp(3rem, 8vw, 6rem);
-            font-weight: 900;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(45deg, #fff, #f0f0f0, #fff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-            margin-top: 30px;
-        }
-
-        .hero p {
-            font-size: 1.3rem;
-            margin-bottom: 2.5rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 1.5rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 4rem;
-        }
-
-        .btn {
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-3px);
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin-top: 4rem;
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .stat-number {
-            font-size: 3rem;
-            font-weight: 900;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 1.1rem;
-            opacity: 0.8;
-            margin-top: 0.5rem;
-        }
-
-        /* Features Section */
-        .features {
-            padding: 8rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 4rem;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .feature-card {
-            padding: 3rem 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .feature-card:hover::before {
-            left: 100%;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            display: block;
-        }
-
-        .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-
-        .feature-card p {
-            opacity: 0.8;
-            line-height: 1.6;
-        }
-
-        /* Floating Elements */
-        .floating-element {
-            position: absolute;
-            opacity: 0.1;
-            z-index: 1;
-        }
-
-        .floating-element.circle {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .floating-element.square {
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.1);
-            transform: rotate(45deg);
-        }
-
-        .floating-element.triangle {
-            width: 0;
-            height: 0;
-            border-left: 40px solid transparent;
-            border-right: 40px solid transparent;
-            border-bottom: 80px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 4rem 2rem;
-            opacity: 0.8;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-            
-            .hero-buttons {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .stats {
-                grid-template-columns: repeat(1, 1fr);
-            }
-        }
-                .feature-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            color: #fff;
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .video-wrapper {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 aspect ratio */
-            height: 0;
-            overflow: hidden;
-            border-radius: 12px;
-            margin-top: 10px;
-        }
-
-        .video-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 12px;
-        }
-        /* Malayalam typography helpers */
-        :root{
-        --ml-body: "Noto Sans Malayalam", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        --ml-display: "Manjari", var(--ml-body);
-        }
-
-        /* Smooth edges on high-dpi */
-        html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-
-        /* Hero Malayalam line */
-        .malayalam-hero {
-        font-family: var(--ml-display);
+    /* Malayalam Typography Glow */
+    .malayalam-greeting {
+        font-family: "Manjari", "Noto Sans Malayalam", system-ui, sans-serif;
         font-weight: 700;
-        font-size: clamp(1.4rem, 5vw, 2.6rem);
-        line-height: 1.25;
-        letter-spacing: 0.2px;            /* gentle tracking for Malayalam */
-        color: #fff;
+        font-size: clamp(1.3rem, 3.5vw, 2rem);
+        color: #0284c7;
+        margin-bottom: 1.5rem;
         display: inline-block;
-        margin: .25rem 0 1rem;
         position: relative;
+    }
 
-        /* classy gradient text */
-        background: linear-gradient(90deg, #fff, #ffe3f3, #ffd27e);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-
-        /* subtle glow so it pops on dark bg */
-        text-shadow: 0 2px 24px rgba(255, 255, 255, 0.15);
-        }
-
-        /* Decorative underline ribbon */
-        .malayalam-hero::after{
+    .malayalam-greeting::after {
         content: "";
         position: absolute;
-        left: 0; right: 0; bottom: -10px;
-        height: 6px;
+        left: 20%;
+        right: 20%;
+        bottom: -6px;
+        height: 4px;
         border-radius: 999px;
-        background: linear-gradient(90deg, #f6d365, #fda085);
-        opacity: .9;
-        }
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+    }
 
-        /* Secondary paragraph style (body Malayalam) */
-        .malayalam-body{
-        font-family: var(--ml-body);
-        font-size: clamp(1rem, 3.2vw, 1.25rem);
-        line-height: 1.7;
-        color: rgba(255,255,255,.92);
-        }
+    /* Stats Cards Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
 
-        /* Optional glass pill label */
-        .ml-pill{
-        font-family: var(--ml-body);
-        display: inline-block;
-        padding: .45rem .9rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.25);
-        backdrop-filter: blur(8px);
-        color: #fff;
+    .stat-box {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.25rem 1rem;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
+        border-color: #cbd5e1;
+    }
+
+    .stat-box .number {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--primary-blue);
+        line-height: 1;
+    }
+
+    .stat-box .label {
+        font-size: 0.85rem;
+        color: #64748b;
         font-weight: 600;
-        letter-spacing: .3px;
-        }
+        margin-top: 0.4rem;
+    }
 
+    /* Video Wrapper */
+    .video-wrapper {
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        overflow: hidden;
+        border-radius: 12px;
+        background: #000;
+    }
 
-        /* Animation delays */
-        .fade-in:nth-child(1) { animation-delay: 0.1s; }
-        .fade-in:nth-child(2) { animation-delay: 0.3s; }
-        .fade-in:nth-child(3) { animation-delay: 0.5s; }
-        .fade-in:nth-child(4) { animation-delay: 0.7s; }
-        .malayalam-hero.fade-in { animation-delay: .05s; }
-    </style>
-</head>
-<body>
-    <!-- Floating Background Elements -->
-    <div class="floating-element circle floating" style="top: 10%; left: 10%;"></div>
-    <div class="floating-element square floating" style="top: 20%; right: 15%; animation-delay: 2s;"></div>
-    <div class="floating-element triangle floating" style="bottom: 30%; left: 20%; animation-delay: 4s;"></div>
-    <div class="floating-element circle floating" style="bottom: 10%; right: 10%; animation-delay: 1s;"></div>
-    
-    <!-- Header -->
-    <header class="glass">
-        <nav>
-            <div class="logo">CompeteHub</div>
-            <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="https://whatsapp.com/channel/0029Vawb0Df4inorAWLn1i0y">Updates </a></li>
-                <li><a href="#leaderboard">Leaderboard</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="{% url 'login' %}" class="cta-nav">Login</a></li>
-            </ul>
-        </nav>
-    </header>
+    .video-wrapper iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
 
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="hero-content">
-            <h1 class="fade-in">{{ fest_name }}</h1>
-            <h4 class="malayalam-hero fade-in">പുണ്യ റബീഇന് സ്വാഗതം</h4>
-            
-            <div class="hero-buttons fade-in">
-                <a href="{% url 'login' %}" class="btn btn-primary">
-                    🚀 Login
+    /* Feature Grid */
+    .feature-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .feature-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+    }
+</style>
+
+<!-- Hero Banner Section -->
+<div class="landing-hero rounded-4 mb-4">
+    <h1 class="fest-hero-title">{{ fest_name }}</h1>
+    <div class="malayalam-greeting">പുണ്യ റബീഇന് സ്വാഗതം</div>
+    <p class="text-muted max-w-600 mx-auto mb-4" style="max-width: 600px;">
+        Welcome to the official competition portal of Hidayathul Islam Higher Secondary Madrasa Vettikkattiri.
+    </p>
+
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+        {% if user.is_authenticated %}
+            {% if user.role == 'admin' %}
+                <a href="{% url 'dashboard_admin' %}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm fw-bold">
+                    <i class="fas fa-chart-line me-2"></i> Go to Admin Dashboard
                 </a>
-                {% if user.is_authenticated %}
-                    {% if user.role == 'admin' %}
-                        <a href="{% url 'dashboard_admin' %}" class="btn btn-secondary">Go to Dashboard</a>
-                    {% elif user.role == 'team' %}
-                        <a href="{% url 'dashboard_team' %}" class="btn btn-secondary">Go to Dashboard</a>
-                    {% endif %}
-                {% endif %}
-            </div>
+            {% elif user.role == 'team' %}
+                <a href="{% url 'dashboard_team' %}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm fw-bold">
+                    <i class="fas fa-home me-2"></i> Go to Team Dashboard
+                </a>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-success btn-lg rounded-pill px-4 shadow-sm fw-bold">
+                <i class="fas fa-sign-in-alt me-2"></i> Portal Login
+            </a>
+        {% endif %}
 
-            <div class="stats glass fade-in">
-                <div class="stat-card">
-                    <span class="stat-number">{{ programs|length }}</span>
-                    <div class="stat-label">Programs</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">{{ teams|length }}</span>
-                    <div class="stat-label">Teams</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">{{ contestants|length}}</span>
-                    <div class="stat-label">Contestants</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="features" id="competitions">
-        <h2 class="section-title fade-in">Why Choose CompeteHub?</h2>
-        <div class="features-grid">
-            <div class="feature-card glass fade-in">
-                <span class="feature-icon">🏆 Leaderboard</span>
-                <a href="{% url 'leaderboard' %}" class="btn btn-primary">Leaderboard</a>
-               </div>
-            <div class="feature-card glass fade-in">
-    <span class="feature-icon"><h3>How To Use This App</h3></span>
-    <div class="video-wrapper mt-3">
-        <iframe 
-            width="100%" 
-            height="200" 
-            src="https://www.youtube.com/embed/XdQWQAhnF8o?si=om2yq8kH07e7ASXO" 
-            title="YouTube video player" 
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-            referrerpolicy="strict-origin-when-cross-origin" 
-            allowfullscreen>
-        </iframe>
+        <a href="{% url 'view_results' %}" class="btn btn-outline-primary btn-lg rounded-pill px-4 fw-semibold">
+            <i class="fas fa-trophy me-2"></i> View Results
+        </a>
+        <a href="{% url 'leaderboard' %}" class="btn btn-outline-secondary btn-lg rounded-pill px-4 fw-semibold">
+            <i class="fas fa-chart-bar me-2"></i> Leaderboard
+        </a>
     </div>
 </div>
-            <div class="feature-card glass fade-in">
-                <span class="feature-icon">🌍</span>
-                <h3>Results</h3>
-                <a href="{% url 'public_results_home' %}" class="btn btn-primary">Click Here</a>
+
+<!-- Stats Bar -->
+<div class="stats-grid">
+    <div class="stat-box">
+        <div class="number">{{ programs|length }}</div>
+        <div class="label"><i class="fas fa-graduation-cap me-1"></i> Competition Programs</div>
+    </div>
+    <div class="stat-box">
+        <div class="number">{{ teams|length }}</div>
+        <div class="label"><i class="fas fa-users-between-lines me-1"></i> Participating Teams</div>
+    </div>
+    <div class="stat-box">
+        <div class="number">{{ contestants|length }}</div>
+        <div class="label"><i class="fas fa-user-graduate me-1"></i> Registered Contestants</div>
+    </div>
+</div>
+
+<!-- Features & Quick Links Grid -->
+<div class="feature-card-grid">
+    <!-- Live Results Card -->
+    <div class="feature-card">
+        <div>
+            <div class="d-flex align-items-center gap-2 text-primary fw-bold mb-2 fs-5">
+                <i class="fas fa-trophy text-warning"></i> Competition Results
             </div>
-            <div class="feature-card glass fade-in">
-                <span class="feature-icon">🎯</span>
-                <h3>Smart Matching</h3>
-                <p>Our AI-powered system matches you with competitors of similar skill levels for fair and exciting challenges.</p>
+            <p class="text-muted small mb-3">
+                Check real-time score updates, ranks, and grade allocations across all event categories.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'view_results' %}" class="btn btn-primary w-100 rounded-3 fw-semibold">
+                <i class="fas fa-arrow-right me-1"></i> Check Results
+            </a>
+        </div>
+    </div>
+
+    <!-- Leaderboard Card -->
+    <div class="feature-card">
+        <div>
+            <div class="d-flex align-items-center gap-2 text-primary fw-bold mb-2 fs-5">
+                <i class="fas fa-chart-line text-success"></i> Team Standings
             </div>
-            <div class="feature-card glass fade-in">
-                <span class="feature-icon">💎</span>
-                <h3>Premium Rewards</h3>
-                <p>Earn valuable prizes, certificates, and recognition. Top performers get exclusive access to premium features.</p>
+            <p class="text-muted small mb-3">
+                Track team point totals, leading campus groups, and individual contestant standings.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'leaderboard' %}" class="btn btn-outline-primary w-100 rounded-3 fw-semibold">
+                <i class="fas fa-crown me-1"></i> View Leaderboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Video Tutorial Card -->
+    <div class="feature-card">
+        <div>
+            <div class="d-flex align-items-center gap-2 text-primary fw-bold mb-2 fs-5">
+                <i class="fab fa-youtube text-danger"></i> Portal Guide Video
             </div>
-            <div class="feature-card glass fade-in">
-                <span class="feature-icon">🔒</span>
-                <h3>Secure Platform</h3>
-                <p>Enterprise-grade security ensures your data is protected and competitions are fair and transparent.</p>
+            <div class="video-wrapper mb-2">
+                <iframe 
+                    src="https://www.youtube.com/embed/XdQWQAhnF8o?si=om2yq8kH07e7ASXO" 
+                    title="How To Use This App" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen>
+                </iframe>
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2025 CompeteHub. Empowering champions worldwide.</p>
-    </footer>
-
-    <script>
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-
-        // Header background on scroll
-        window.addEventListener('scroll', () => {
-            const header = document.querySelector('header');
-            if (window.scrollY > 100) {
-                header.style.background = 'rgba(255, 255, 255, 0.1)';
-                header.style.backdropFilter = 'blur(20px)';
-            } else {
-                header.style.background = 'rgba(255, 255, 255, 0.05)';
-                header.style.backdropFilter = 'blur(10px)';
-            }
-        });
-
-        // Intersection Observer for fade-in animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.animationPlayState = 'running';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.fade-in').forEach(el => {
-            el.style.animationPlayState = 'paused';
-            observer.observe(el);
-        });
-
-        // Add some interactive particle effects
-        function createParticle() {
-            const particle = document.createElement('div');
-            particle.className = 'floating-element circle';
-            particle.style.position = 'fixed';
-            particle.style.width = Math.random() * 10 + 5 + 'px';
-            particle.style.height = particle.style.width;
-            particle.style.left = Math.random() * window.innerWidth + 'px';
-            particle.style.top = window.innerHeight + 10 + 'px';
-            particle.style.opacity = Math.random() * 0.3;
-            particle.style.animation = `float ${Math.random() * 10 + 10}s linear infinite`;
-            particle.style.transform = `translateY(-${window.innerHeight + 100}px)`;
-            
-            document.body.appendChild(particle);
-            
-            setTimeout(() => {
-                particle.remove();
-            }, 20000);
-        }
-
-        // Create particles periodically
-        setInterval(createParticle, 2000);
-
-        // Service Worker Registration for PWA Mobile App Capability
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    console.log('PWA Service Worker registered');
-                });
-            });
-        }
-    </script>
-</body>
-</html>
+    <!-- WhatsApp Updates Card -->
+    <div class="feature-card">
+        <div>
+            <div class="d-flex align-items-center gap-2 text-success fw-bold mb-2 fs-5">
+                <i class="fab fa-whatsapp fs-4"></i> Live Updates Channel
+            </div>
+            <p class="text-muted small mb-3">
+                Join our official WhatsApp channel for instant event announcements, schedule changes, and result highlights.
+            </p>
+        </div>
+        <div>
+            <a href="https://whatsapp.com/channel/0029Vawb0Df4inorAWLn1i0y" target="_blank" class="btn btn-success w-100 rounded-3 fw-semibold">
+                <i class="fab fa-whatsapp me-1"></i> Join WhatsApp Channel
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
