@@ -1,248 +1,614 @@
-{% extends 'base.html' %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#033067">
 
-{% block content %}
-<style>
-    /* Custom Landing Page Enhancements matching Logged-in Dashboard */
-    .landing-hero {
-        text-align: center;
-        padding: 2rem 1rem;
-        background: radial-gradient(circle at center, rgba(3, 48, 103, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-        border-bottom: 1px solid #f1f5f9;
-        margin-bottom: 2rem;
-    }
+    <!-- PWA & Mobile Web App Settings -->
+    <link rel="manifest" href="{% url 'manifest_json' %}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HIMHS Fest">
+    <link rel="apple-touch-icon" href="{% static 'FDL.png' %}">
 
-    .fest-hero-title {
-        font-size: clamp(2rem, 5vw, 3.2rem);
-        font-weight: 800;
-        color: var(--primary-blue);
-        letter-spacing: -0.5px;
-        margin-bottom: 0.5rem;
-    }
+    <link rel="icon" type="image/png" href="{% static 'FDL.png' %}">
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    /* Malayalam Typography Glow */
-    .malayalam-greeting {
-        font-family: "Manjari", "Noto Sans Malayalam", system-ui, sans-serif;
-        font-weight: 700;
-        font-size: clamp(1.3rem, 3.5vw, 2rem);
-        color: #0284c7;
-        margin-bottom: 1.5rem;
-        display: inline-block;
-        position: relative;
-    }
+    <title>{{ fest_name }} | Competition Web Portal</title>
 
-    .malayalam-greeting::after {
-        content: "";
-        position: absolute;
-        left: 20%;
-        right: 20%;
-        bottom: -6px;
-        height: 4px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
-    }
+    <style>
+        :root {
+            --primary-bg: #070b14;
+            --card-glass-bg: rgba(15, 23, 42, 0.7);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --accent-blue: #38bdf8;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #818cf8;
+            --accent-amber: #f59e0b;
+        }
 
-    /* Stats Cards Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .stat-box {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 1.25rem 1rem;
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(at 0% 0%, #033067 0px, transparent 50%),
+                        radial-gradient(at 100% 0%, #1e1b4b 0px, transparent 50%),
+                        radial-gradient(at 50% 100%, #0f172a 0px, transparent 50%),
+                        var(--primary-bg);
+            background-attachment: fixed;
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
 
-    .stat-box:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
-        border-color: #cbd5e1;
-    }
+        /* Glassmorphism Panel Utility */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
 
-    .stat-box .number {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: var(--primary-blue);
-        line-height: 1;
-    }
+        /* Navbar Header */
+        .portal-navbar {
+            background: rgba(7, 11, 20, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 0.85rem 1.5rem;
+        }
 
-    .stat-box .label {
-        font-size: 0.85rem;
-        color: #64748b;
-        font-weight: 600;
-        margin-top: 0.4rem;
-    }
+        .brand-logo {
+            height: 42px;
+            width: auto;
+            filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.3));
+        }
 
-    /* Video Wrapper */
-    .video-wrapper {
-        position: relative;
-        padding-bottom: 56.25%; /* 16:9 aspect ratio */
-        height: 0;
-        overflow: hidden;
-        border-radius: 12px;
-        background: #000;
-    }
+        .nav-btn {
+            color: #cbd5e1;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
 
-    .video-wrapper iframe {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
+        .nav-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
 
-    /* Feature Grid */
-    .feature-card-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1.5rem;
-    }
+        .nav-btn-highlight {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        }
 
-    .feature-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
+        .nav-btn-highlight:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.5);
+        }
 
-    .feature-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
-    }
-</style>
+        /* Hero Showcase Section */
+        .hero-showcase {
+            position: relative;
+            padding: 4rem 1.5rem 3rem;
+            text-align: center;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
 
-<!-- Hero Banner Section -->
-<div class="landing-hero rounded-4 mb-4">
-    <h1 class="fest-hero-title">{{ fest_name }}</h1>
-    <div class="malayalam-greeting">പുണ്യ റബീഇന് സ്വാഗതം</div>
-    <p class="text-muted max-w-600 mx-auto mb-4" style="max-width: 600px;">
-        Welcome to the official competition portal of Hidayathul Islam Higher Secondary Madrasa Vettikkattiri.
-    </p>
+        .portal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: var(--accent-blue);
+            font-size: 0.825rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 1.25rem;
+        }
 
-    <div class="d-flex justify-content-center gap-2 flex-wrap">
-        {% if user.is_authenticated %}
-            {% if user.role == 'admin' %}
-                <a href="{% url 'dashboard_admin' %}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm fw-bold">
-                    <i class="fas fa-chart-line me-2"></i> Go to Admin Dashboard
-                </a>
-            {% elif user.role == 'team' %}
-                <a href="{% url 'dashboard_team' %}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm fw-bold">
-                    <i class="fas fa-home me-2"></i> Go to Team Dashboard
+        .hero-title {
+            font-size: clamp(2.5rem, 6.5vw, 4.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .malayalam-title {
+            font-family: "Manjari", "Noto Sans Malayalam", system-ui, sans-serif;
+            font-size: clamp(1.4rem, 4vw, 2.5rem);
+            font-weight: 700;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .hero-institution {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        .hero-action-group {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 3.5rem;
+        }
+
+        .action-btn-main {
+            padding: 0.85rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.25 ease;
+        }
+
+        .btn-glow-primary {
+            background: linear-gradient(135deg, #0284c7, #4f46e5);
+            color: #ffffff;
+            box-shadow: 0 4px 20px rgba(2, 132, 199, 0.4);
+            border: none;
+        }
+
+        .btn-glow-primary:hover {
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(2, 132, 199, 0.6);
+        }
+
+        .btn-glow-outline {
+            background: rgba(255, 255, 255, 0.05);
+            color: #f1f5f9;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-glow-outline:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        /* Stats Grid Showcase */
+        .stats-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            max-width: 1100px;
+            margin: 0 auto 3.5rem;
+            padding: 0 1.5rem;
+        }
+
+        .stat-card-innovative {
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.25s ease, border-color 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card-innovative:hover {
+            transform: translateY(-4px);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .stat-card-innovative .stat-icon {
+            font-size: 1.75rem;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card-innovative .stat-val {
+            font-size: 2.75rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(135deg, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card-innovative .stat-lbl {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-top: 0.4rem;
+        }
+
+        /* Innovation Modules Grid */
+        .modules-section {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        .section-header-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .module-card {
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .module-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+
+        .module-icon-badge {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .bg-trophy { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .bg-leaderboard { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .bg-video { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .bg-whatsapp { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
+
+        .video-player-box {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            margin-top: 1rem;
+        }
+
+        .video-player-box iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Mobile Floating Bottom Bar */
+        .mobile-pwa-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(7, 11, 20, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.6rem 1rem;
+            z-index: 1000;
+        }
+
+        .mobile-tab-group {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .mobile-tab-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            gap: 0.25rem;
+        }
+
+        .mobile-tab-link i { font-size: 1.2rem; }
+        .mobile-tab-link.active { color: var(--accent-blue); }
+
+        @media (max-width: 768px) {
+            .mobile-pwa-bar { display: block; }
+            .hero-showcase { padding-top: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <header class="portal-navbar d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <img src="{% static 'FDL.png' %}" class="brand-logo" alt="Logo">
+            <div>
+                <h5 class="fw-bold mb-0 text-white leading-tight">{{ fest_name }}</h5>
+                <small class="text-muted d-none d-sm-block" style="font-size: 0.78rem;">Hidayathul Islam Higher Secondary Madrasa Vettikkattiri</small>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'view_results' %}" class="nav-btn d-none d-md-inline-flex">
+                <i class="fas fa-trophy"></i> Results
+            </a>
+            <a href="{% url 'leaderboard' %}" class="nav-btn d-none d-md-inline-flex">
+                <i class="fas fa-chart-bar"></i> Leaderboard
+            </a>
+
+            <button type="button" class="nav-btn text-info pwa-install-btn d-none" onclick="triggerPwaInstall()">
+                <i class="fas fa-mobile-screen-button"></i> Install App
+            </button>
+
+            {% if user.is_authenticated %}
+                {% if user.role == 'admin' %}
+                    <a href="{% url 'dashboard_admin' %}" class="nav-btn nav-btn-highlight">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                {% elif user.role == 'team' %}
+                    <a href="{% url 'dashboard_team' %}" class="nav-btn nav-btn-highlight">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-btn nav-btn-highlight">
+                    <i class="fas fa-sign-in-alt"></i> Login
                 </a>
             {% endif %}
-        {% else %}
-            <a href="{% url 'login' %}" class="btn btn-success btn-lg rounded-pill px-4 shadow-sm fw-bold">
-                <i class="fas fa-sign-in-alt me-2"></i> Portal Login
-            </a>
-        {% endif %}
+        </div>
+    </header>
 
-        <a href="{% url 'view_results' %}" class="btn btn-outline-primary btn-lg rounded-pill px-4 fw-semibold">
-            <i class="fas fa-trophy me-2"></i> View Results
-        </a>
-        <a href="{% url 'leaderboard' %}" class="btn btn-outline-secondary btn-lg rounded-pill px-4 fw-semibold">
-            <i class="fas fa-chart-bar me-2"></i> Leaderboard
-        </a>
-    </div>
-</div>
+    <!-- Hero Showcase -->
+    <section class="hero-showcase">
+        <div class="portal-badge">
+            <i class="fas fa-sparkles"></i> Official Competition Web Portal
+        </div>
 
-<!-- Stats Bar -->
-<div class="stats-grid">
-    <div class="stat-box">
-        <div class="number">{{ programs|length }}</div>
-        <div class="label"><i class="fas fa-graduation-cap me-1"></i> Competition Programs</div>
-    </div>
-    <div class="stat-box">
-        <div class="number">{{ teams|length }}</div>
-        <div class="label"><i class="fas fa-users-between-lines me-1"></i> Participating Teams</div>
-    </div>
-    <div class="stat-box">
-        <div class="number">{{ contestants|length }}</div>
-        <div class="label"><i class="fas fa-user-graduate me-1"></i> Registered Contestants</div>
-    </div>
-</div>
+        <h1 class="hero-title">{{ fest_name }}</h1>
+        <div class="malayalam-title">പുണ്യ റബീഇന് സ്വാഗതം</div>
+        <p class="hero-institution">Hidayathul Islam Higher Secondary Madrasa Vettikkattiri</p>
 
-<!-- Features & Quick Links Grid -->
-<div class="feature-card-grid">
-    <!-- Live Results Card -->
-    <div class="feature-card">
-        <div>
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold mb-2 fs-5">
+        <div class="hero-action-group">
+            {% if user.is_authenticated %}
+                {% if user.role == 'admin' %}
+                    <a href="{% url 'dashboard_admin' %}" class="action-btn-main btn-glow-primary">
+                        <i class="fas fa-chart-line"></i> Admin Dashboard
+                    </a>
+                {% elif user.role == 'team' %}
+                    <a href="{% url 'dashboard_team' %}" class="action-btn-main btn-glow-primary">
+                        <i class="fas fa-home"></i> Team Dashboard
+                    </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'login' %}" class="action-btn-main btn-glow-primary">
+                    <i class="fas fa-sign-in-alt"></i> Portal Login
+                </a>
+            {% endif %}
+
+            <a href="{% url 'view_results' %}" class="action-btn-main btn-glow-outline">
                 <i class="fas fa-trophy text-warning"></i> Competition Results
-            </div>
-            <p class="text-muted small mb-3">
-                Check real-time score updates, ranks, and grade allocations across all event categories.
-            </p>
-        </div>
-        <div>
-            <a href="{% url 'view_results' %}" class="btn btn-primary w-100 rounded-3 fw-semibold">
-                <i class="fas fa-arrow-right me-1"></i> Check Results
             </a>
+            <a href="{% url 'leaderboard' %}" class="action-btn-main btn-glow-outline">
+                <i class="fas fa-medal text-success"></i> Team Standings
+            </a>
+        </div>
+    </section>
+
+    <!-- Live Stats Container -->
+    <section class="stats-grid-container">
+        <div class="glass-panel stat-card-innovative">
+            <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+            <div class="stat-val">{{ programs|length }}</div>
+            <div class="stat-lbl">Competition Programs</div>
+        </div>
+
+        <div class="glass-panel stat-card-innovative">
+            <div class="stat-icon"><i class="fas fa-users-between-lines"></i></div>
+            <div class="stat-val">{{ teams|length }}</div>
+            <div class="stat-lbl">Participating Teams</div>
+        </div>
+
+        <div class="glass-panel stat-card-innovative">
+            <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+            <div class="stat-val">{{ contestants|length }}</div>
+            <div class="stat-lbl">Registered Contestants</div>
+        </div>
+    </section>
+
+    <!-- Innovative Portal Modules Grid -->
+    <section class="modules-section">
+        <h3 class="section-header-title">
+            <i class="fas fa-cubes text-info"></i> Portal Modules & Highlights
+        </h3>
+
+        <div class="modules-grid">
+            <!-- Results Module -->
+            <div class="glass-panel module-card">
+                <div>
+                    <div class="module-icon-badge bg-trophy">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">Live Competition Results</h4>
+                    <p class="text-slate-400 small mb-3">Explore item-wise published results, rank holders, and point distributions.</p>
+                </div>
+                <div>
+                    <a href="{% url 'view_results' %}" class="btn btn-outline-info w-100 rounded-3 fw-bold">
+                        <i class="fas fa-external-link-alt me-1"></i> Access Results
+                    </a>
+                </div>
+            </div>
+
+            <!-- Leaderboard Module -->
+            <div class="glass-panel module-card">
+                <div>
+                    <div class="module-icon-badge bg-leaderboard">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">Team Leaderboard</h4>
+                    <p class="text-slate-400 small mb-3">Real-time team rankings, campus tallies, and overall championship standings.</p>
+                </div>
+                <div>
+                    <a href="{% url 'leaderboard' %}" class="btn btn-outline-success w-100 rounded-3 fw-bold">
+                        <i class="fas fa-crown me-1"></i> View Standings
+                    </a>
+                </div>
+            </div>
+
+            <!-- Video Tutorial Module -->
+            <div class="glass-panel module-card">
+                <div>
+                    <div class="module-icon-badge bg-video">
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-1">Portal Walkthrough Guide</h4>
+                    <p class="text-slate-400 small mb-2">Watch quick tutorial video to learn how to navigate the portal features.</p>
+                    <div class="video-player-box">
+                        <iframe 
+                            src="https://www.youtube.com/embed/XdQWQAhnF8o?si=om2yq8kH07e7ASXO" 
+                            title="Portal Walkthrough Guide" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Updates Module -->
+            <div class="glass-panel module-card">
+                <div>
+                    <div class="module-icon-badge bg-whatsapp">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">Official Updates Channel</h4>
+                    <p class="text-slate-400 small mb-3">Get instant WhatsApp notifications on program schedules and announcements.</p>
+                </div>
+                <div>
+                    <a href="https://whatsapp.com/channel/0029Vawb0Df4inorAWLn1i0y" target="_blank" class="btn btn-success w-100 rounded-3 fw-bold">
+                        <i class="fab fa-whatsapp me-1"></i> Join Updates Channel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <div class="mobile-pwa-bar">
+        <div class="mobile-tab-group">
+            <a href="/" class="mobile-tab-link active">
+                <i class="fas fa-globe"></i>
+                <span>Portal Home</span>
+            </a>
+            <a href="{% url 'view_results' %}" class="mobile-tab-link">
+                <i class="fas fa-trophy"></i>
+                <span>Results</span>
+            </a>
+            <a href="{% url 'leaderboard' %}" class="mobile-tab-link">
+                <i class="fas fa-chart-bar"></i>
+                <span>Leaderboard</span>
+            </a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'logout' %}" class="mobile-tab-link text-danger">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="mobile-tab-link text-success">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </a>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Leaderboard Card -->
-    <div class="feature-card">
-        <div>
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold mb-2 fs-5">
-                <i class="fas fa-chart-line text-success"></i> Team Standings
-            </div>
-            <p class="text-muted small mb-3">
-                Track team point totals, leading campus groups, and individual contestant standings.
-            </p>
-        </div>
-        <div>
-            <a href="{% url 'leaderboard' %}" class="btn btn-outline-primary w-100 rounded-3 fw-semibold">
-                <i class="fas fa-crown me-1"></i> View Leaderboard
-            </a>
-        </div>
-    </div>
+    <!-- Bootstrap & PWA Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Video Tutorial Card -->
-    <div class="feature-card">
-        <div>
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold mb-2 fs-5">
-                <i class="fab fa-youtube text-danger"></i> Portal Guide Video
-            </div>
-            <div class="video-wrapper mb-2">
-                <iframe 
-                    src="https://www.youtube.com/embed/XdQWQAhnF8o?si=om2yq8kH07e7ASXO" 
-                    title="How To Use This App" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                    allowfullscreen>
-                </iframe>
-            </div>
-        </div>
-    </div>
+    <script>
+        // Service Worker Registration for PWA Capability
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('PWA Service Worker active');
+                });
+            });
+        }
 
-    <!-- WhatsApp Updates Card -->
-    <div class="feature-card">
-        <div>
-            <div class="d-flex align-items-center gap-2 text-success fw-bold mb-2 fs-5">
-                <i class="fab fa-whatsapp fs-4"></i> Live Updates Channel
-            </div>
-            <p class="text-muted small mb-3">
-                Join our official WhatsApp channel for instant event announcements, schedule changes, and result highlights.
-            </p>
-        </div>
-        <div>
-            <a href="https://whatsapp.com/channel/0029Vawb0Df4inorAWLn1i0y" target="_blank" class="btn btn-success w-100 rounded-3 fw-semibold">
-                <i class="fab fa-whatsapp me-1"></i> Join WhatsApp Channel
-            </a>
-        </div>
-    </div>
-</div>
-{% endblock %}
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const installBtns = document.querySelectorAll('.pwa-install-btn');
+            installBtns.forEach(btn => btn.classList.remove('d-none'));
+        });
+
+        function triggerPwaInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.then((choiceResult) => {
+                    deferredInstallPrompt = null;
+                    const installBtns = document.querySelectorAll('.pwa-install-btn');
+                    installBtns.forEach(btn => btn.classList.add('d-none'));
+                });
+            } else {
+                alert('To install the app on your mobile device:\n\n📱 Android / Chrome:\n1. Tap browser menu (⋮)\n2. Tap "Add to Home Screen" or "Install App"\n\n🍎 iPhone / Safari:\n1. Tap Share button (↑)\n2. Tap "Add to Home Screen"');
+            }
+        }
+    </script>
+</body>
+</html>
