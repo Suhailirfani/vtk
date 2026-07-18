@@ -1,4 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.cache import cache_control
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -6,7 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.urls import reverse
-from ..models import Program, Team, Contestant
+from ..models import Program, Team, Contestant, SystemSetting
 
 User = get_user_model()
 
@@ -176,4 +178,78 @@ def disapprove_user(request, user_id):
     user.is_approved = False
     user.save()
     return redirect('pending_users')
+
+def manifest_view(request):
+    fest_name = SystemSetting.get_setting('fest_name', 'HIMHS Meelad Fest')
+    manifest_data = {
+        "name": fest_name,
+        "short_name": "HIMHS Fest",
+        "description": f"{fest_name} - Hidayathul Islam Higher Secondary Madrasa Vettikkattiri",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0b0f19",
+        "theme_color": "#033067",
+        "orientation": "portrait",
+        "icons": [
+            {
+                "src": "/static/FDL.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "/static/FDL.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+    return JsonResponse(manifest_data)
+
+@cache_control(max_age=86400, public=True)
+def service_worker(request):
+    sw_code = """
+const CACHE_NAME = 'himhs-fest-pwa-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/static/FDL.png',
+  '/manifest.json'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) return caches.delete(key);
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});
+"""
+    return HttpResponse(sw_code, content_type='application/javascript')
+
 

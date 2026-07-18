@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#033067">
+    
+    <!-- PWA & Mobile Web App Settings -->
+    <link rel="manifest" href="{% url 'manifest_json' %}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HIMHS Fest">
+    <link rel="apple-touch-icon" href="{% static 'FDL.png' %}">
+
     <title>{{ fest_name }}</title>
     <link rel="icon" type="image/png" href="{% static    'FDL.png' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -284,6 +293,9 @@
             <a href="{% url 'leaderboard' %}" class="nav-link-btn {% if request.resolver_match.url_name == 'leaderboard' %}active{% endif %}">
                 <i class="fas fa-chart-bar"></i> Leaderboard
             </a>
+            <button type="button" class="nav-link-btn text-info pwa-install-btn d-none" onclick="triggerPwaInstall()">
+                <i class="fas fa-download"></i> Install App
+            </button>
             {% if user.is_authenticated %}
                 <a href="{% url 'logout' %}" class="nav-link-btn text-danger">
                     <i class="fas fa-sign-out-alt"></i> Logout
@@ -344,6 +356,11 @@
                 <i class="fas fa-chart-bar"></i>
                 <span>Leaderboard</span>
             </a>
+
+            <button type="button" class="tab-item text-info border-0 bg-transparent pwa-install-btn d-none" onclick="triggerPwaInstall()">
+                <i class="fas fa-mobile-screen-button"></i>
+                <span>Install</span>
+            </button>
             
             {% if user.is_authenticated %}
                 <a href="{% url 'logout' %}" class="tab-item text-danger">
@@ -362,8 +379,43 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Mobile Touch Enhancement -->
+    <!-- PWA & Mobile Touch Script -->
     <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('ServiceWorker registered with scope: ', reg.scope);
+                }).catch(function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const installBtns = document.querySelectorAll('.pwa-install-btn');
+            installBtns.forEach(btn => btn.classList.remove('d-none'));
+        });
+
+        function triggerPwaInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted PWA installation');
+                    }
+                    deferredInstallPrompt = null;
+                    const installBtns = document.querySelectorAll('.pwa-install-btn');
+                    installBtns.forEach(btn => btn.classList.add('d-none'));
+                });
+            } else {
+                alert('To install the app on your mobile device:\n\n📱 Android / Chrome:\n1. Tap browser menu (⋮)\n2. Tap "Add to Home Screen" or "Install App"\n\n🍎 iPhone / Safari:\n1. Tap Share button (↑)\n2. Tap "Add to Home Screen"');
+            }
+        }
+
         // Improve touch responsiveness on mobile
         document.addEventListener('DOMContentLoaded', function() {
             const navButtons = document.querySelectorAll('.nav-link-btn, .tab-item');

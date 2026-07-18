@@ -1,0 +1,24 @@
+{
+  "name": "Hidayathul Islam Higher Secondary Madrasa Vettikkattiri",
+  "short_name": "HIMHS Fest",
+  "description": "Meelad Fest Competition Portal - Hidayathul Islam Higher Secondary Madrasa Vettikkattiri",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0f19",
+  "theme_color": "#033067",
+  "icons": [
+    {
+      "src": "/static/FDL.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/FDL.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
