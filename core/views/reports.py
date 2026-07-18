@@ -565,7 +565,7 @@ def program_result_pdf(request, program_id):
     elements = []
 
     title_style = styles['Title']
-    elements.append(Paragraph("<font size=10 color='#033067'><b>HAYATHUL ISLAM MADRASA VETTIKKATTIRI</b></font>", title_style))
+    elements.append(Paragraph("<font size=10 color='#033067'><b>HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA VETTIKKATTIRI</b></font>", title_style))
     elements.append(Paragraph("<font size=15 color='#d63384'><b>MEELAD FEST</b></font>", title_style))
     elements.append(Paragraph(f"<font size=14 color='#333333'><b>RESULTS: {program.name.upper()} - {program.category.name.upper()}</b></font>", title_style))
     elements.append(Spacer(1, 12))

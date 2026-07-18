@@ -1,96 +1,553 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4">All Users</h2>
 
-    <!-- Filter and Search -->
-    <form method="get" class="row mb-4">
-        <div class="col-md-4">
-            <input type="text" name="q" class="form-control" placeholder="Search by name/email" value="{{ search_term }}">
+{% block content %}
+<style>
+    /* Custom Modern User Management Styles */
+    .user-mgmt-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .user-mgmt-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--primary-blue);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    /* Stats Cards Grid */
+    .user-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    .stat-info .stat-val {
+        font-size: 1.6rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--primary-blue);
+    }
+
+    .stat-info .stat-lbl {
+        font-size: 0.825rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-top: 0.2rem;
+    }
+
+    .stat-icon-wrapper {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .icon-total { background: #e0f2fe; color: #0284c7; }
+    .icon-admin { background: #f3e8ff; color: #7e22ce; }
+    .icon-team { background: #dcfce7; color: #15803d; }
+    .icon-pending { background: #fef3c7; color: #b45309; }
+
+    /* Filter & Search Bar */
+    .filter-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Table Customizations */
+    .table-container {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .table-custom {
+        margin-bottom: 0;
+    }
+
+    .table-custom th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table-custom td {
+        padding: 0.9rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+    }
+
+    .table-custom tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* User Avatar Initial */
+    .user-avatar-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--primary-blue);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .avatar-admin { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .avatar-team { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+    .avatar-off_campus { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    /* Role Badges */
+    .role-badge {
+        padding: 0.35rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .role-admin { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+    .role-team { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .role-off_campus { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+    /* Status Indicator */
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.35rem;
+    }
+    .status-dot-active { background-color: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); }
+    .status-dot-locked { background-color: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+
+    /* Mobile Cards View */
+    .user-mobile-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.1rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+
+    .user-mobile-card .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .user-mobile-card .card-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .action-btn-group .btn {
+        padding: 0.35rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.825rem;
+    }
+</style>
+
+<!-- Header & Title -->
+<div class="user-mgmt-header">
+    <div>
+        <h2 class="user-mgmt-title">
+            <i class="fas fa-users-cog text-primary"></i> User Management
+        </h2>
+        <p class="text-muted small mb-0 mt-1">Manage portal accounts, roles, access permissions, and team links.</p>
+    </div>
+    {% if pending_count > 0 %}
+        <a href="{% url 'pending_users' %}" class="btn btn-warning rounded-pill px-3 btn-sm shadow-sm fw-bold">
+            <i class="fas fa-user-clock me-1"></i> Pending Approvals 
+            <span class="badge bg-dark text-white rounded-circle ms-1">{{ pending_count }}</span>
+        </a>
+    {% endif %}
+</div>
+
+<!-- Stats Bar -->
+<div class="user-stats-grid">
+    <div class="stat-card">
+        <div class="stat-info">
+            <div class="stat-val">{{ total_users_count }}</div>
+            <div class="stat-lbl">Total Registered Users</div>
         </div>
-        <div class="col-md-4">
+        <div class="stat-icon-wrapper icon-total">
+            <i class="fas fa-users"></i>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-info">
+            <div class="stat-val">{{ admin_count }}</div>
+            <div class="stat-lbl">Administrator Accounts</div>
+        </div>
+        <div class="stat-icon-wrapper icon-admin">
+            <i class="fas fa-user-shield"></i>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-info">
+            <div class="stat-val">{{ team_count }}</div>
+            <div class="stat-lbl">Team & Off-Campus Users</div>
+        </div>
+        <div class="stat-icon-wrapper icon-team">
+            <i class="fas fa-users-between-lines"></i>
+        </div>
+    </div>
+
+    <a href="{% url 'pending_users' %}" class="stat-card">
+        <div class="stat-info">
+            <div class="stat-val">{{ pending_count }}</div>
+            <div class="stat-lbl">Pending Approvals</div>
+        </div>
+        <div class="stat-icon-wrapper icon-pending">
+            <i class="fas fa-clock"></i>
+        </div>
+    </a>
+</div>
+
+<!-- Filter and Search Bar -->
+<div class="filter-card">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+                <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Search name, email, or team..." value="{{ search_term }}">
+                {% if search_term %}
+                    <a href="{% url 'view_users' %}" class="input-group-text bg-light text-muted" title="Clear Search"><i class="fas fa-times"></i></a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-3">
             <select name="role" class="form-select">
                 <option value="">All Roles</option>
                 <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Admin</option>
                 <option value="team" {% if selected_role == 'team' %}selected{% endif %}>Team</option>
+                <option value="off_campus" {% if selected_role == 'off_campus' %}selected{% endif %}>Off Campus</option>
             </select>
         </div>
-        <div class="col-md-4">
-            <button type="submit" class="btn btn-primary w-100">Filter</button>
+
+        <div class="col-6 col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Status</option>
+                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Locked</option>
+            </select>
+        </div>
+
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                <i class="fas fa-filter me-1"></i> Filter
+            </button>
+            {% if search_term or selected_role or selected_status %}
+                <a href="{% url 'view_users' %}" class="btn btn-outline-secondary" title="Reset Filters"><i class="fas fa-undo"></i></a>
+            {% endif %}
         </div>
     </form>
+</div>
 
-    <!-- User Table -->
-    <table class="table table-striped bg-white text-dark">
+<!-- Desktop Table View (Hidden on mobile) -->
+<div class="table-container d-none d-md-block">
+    <table class="table table-custom table-hover align-middle mb-0">
         <thead>
             <tr>
-                <th>#</th>
-                <th>Username</th>
-                <th>Email</th>
+                <th style="width: 50px;">#</th>
+                <th>User Details</th>
                 <th>Role</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>Team Link</th>
+                <th>Account Status</th>
+                <th class="text-end" style="width: 140px;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for user in users %}
             <tr>
-                <!-- Continuous numbering across pages -->
-                <td>{{ users.start_index|add:forloop.counter0 }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.role }}</td>
-                <td>{{ user.is_active|yesno:"Active,Inactive" }}</td>
+                <td class="text-muted fw-bold">{{ users.start_index|add:forloop.counter0 }}</td>
                 <td>
-                    <a href="{% url 'edit_user' user.id %}" class="btn btn-sm btn-warning">Edit</a>
-                    <a href="{% url 'delete_user' user.id %}" onclick="return confirm('Are you sure you want to delete this user?');" class="btn btn-sm btn-danger">Delete</a>
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div class="user-avatar-circle avatar-{{ user.role|default:'team' }} me-2">
+                            {{ user.username|slice:":2" }}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark mb-0">{{ user.username }}</div>
+                            <div class="text-muted small">{{ user.email|default:"No email set" }}</div>
+                        </div>
+                    </div>
                 </td>
                 <td>
-                {% if user.role == 'team' %}
-                  {% if user.is_active %}
-                    <a href="{% url 'lock_user' user.id %}" class="btn btn-danger btn-sm">Lock</a>
-                  {% else %}
-                    <a href="{% url 'unlock_user' user.id %}" class="btn btn-success btn-sm">Unlock</a>
-                  {% endif %}
-                {% endif %}
+                    {% if user.role == 'admin' %}
+                        <span class="role-badge role-admin"><i class="fas fa-user-shield"></i> Admin</span>
+                    {% elif user.role == 'team' %}
+                        <span class="role-badge role-team"><i class="fas fa-users"></i> Team</span>
+                    {% elif user.role == 'off_campus' %}
+                        <span class="role-badge role-off_campus"><i class="fas fa-building"></i> Off Campus</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ user.role|title }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.team %}
+                        <span class="fw-semibold text-primary"><i class="fas fa-flag me-1"></i>{{ user.team.name }}</span>
+                    {% else %}
+                        <span class="text-muted small">&mdash;</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_active %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                            <span class="status-dot status-dot-active"></span>Active
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                            <span class="status-dot status-dot-locked"></span>Locked
+                        </span>
+                    {% endif %}
+
+                    {% if not user.is_approved %}
+                        <span class="badge bg-warning text-dark ms-1" title="Pending Approval">Pending</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    <div class="action-btn-group d-inline-flex gap-1">
+                        <a href="{% url 'edit_user' user.id %}" class="btn btn-outline-primary btn-sm" title="Edit User">
+                            <i class="fas fa-edit"></i>
+                        </a>
+
+                        {% if user.role == 'team' or user.role == 'off_campus' %}
+                            {% if user.is_active %}
+                                <a href="{% url 'lock_user' user.id %}" class="btn btn-outline-warning btn-sm" title="Lock Account">
+                                    <i class="fas fa-lock"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'unlock_user' user.id %}" class="btn btn-outline-success btn-sm" title="Unlock Account">
+                                    <i class="fas fa-unlock"></i>
+                                </a>
+                            {% endif %}
+                        {% endif %}
+
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                onclick="confirmUserDelete('{{ user.id }}', '{{ user.username|escapejs }}', '{% url 'delete_user' user.id %}')"
+                                title="Delete User">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6">No users found.</td>
+                <td colspan="6" class="text-center py-5">
+                    <div class="text-muted">
+                        <i class="fas fa-user-slash fa-3x mb-3 text-secondary opacity-50"></i>
+                        <h5 class="fw-semibold">No Users Found</h5>
+                        <p class="small mb-0">Try clearing your filters or search terms.</p>
+                    </div>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
-<!-- Pagination -->
-<nav>
-  <ul class="pagination justify-content-center">
+<!-- Mobile Cards View (Hidden on desktop) -->
+<div class="d-block d-md-none">
+    {% for user in users %}
+        <div class="user-mobile-card">
+            <div class="card-top">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="user-avatar-circle avatar-{{ user.role|default:'team' }} me-2">
+                        {{ user.username|slice:":2" }}
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark">{{ user.username }}</h6>
+                        <small class="text-muted">{{ user.email|default:"No email set" }}</small>
+                    </div>
+                </div>
+                <div>
+                    {% if user.is_active %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Locked</span>
+                    {% endif %}
+                </div>
+            </div>
 
-    <!-- First Page -->
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light small">
+                <div>
+                    <span class="text-muted me-1">Role:</span>
+                    {% if user.role == 'admin' %}
+                        <span class="role-badge role-admin py-0 px-2"><i class="fas fa-user-shield"></i> Admin</span>
+                    {% elif user.role == 'team' %}
+                        <span class="role-badge role-team py-0 px-2"><i class="fas fa-users"></i> Team</span>
+                    {% elif user.role == 'off_campus' %}
+                        <span class="role-badge role-off_campus py-0 px-2"><i class="fas fa-building"></i> Off Campus</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ user.role|title }}</span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    {% if user.team %}
+                        <span class="badge bg-light text-primary border"><i class="fas fa-flag me-1"></i>{{ user.team.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <a href="{% url 'edit_user' user.id %}" class="btn btn-outline-primary btn-sm flex-fill">
+                    <i class="fas fa-edit me-1"></i> Edit
+                </a>
+
+                {% if user.role == 'team' or user.role == 'off_campus' %}
+                    {% if user.is_active %}
+                        <a href="{% url 'lock_user' user.id %}" class="btn btn-outline-warning btn-sm flex-fill">
+                            <i class="fas fa-lock me-1"></i> Lock
+                        </a>
+                    {% else %}
+                        <a href="{% url 'unlock_user' user.id %}" class="btn btn-outline-success btn-sm flex-fill">
+                            <i class="fas fa-unlock me-1"></i> Unlock
+                        </a>
+                    {% endif %}
+                {% endif %}
+
+                <button type="button" class="btn btn-outline-danger btn-sm flex-fill"
+                        onclick="confirmUserDelete('{{ user.id }}', '{{ user.username|escapejs }}', '{% url 'delete_user' user.id %}')">
+                    <i class="fas fa-trash-alt me-1"></i> Delete
+                </button>
+            </div>
+        </div>
+    {% empty %}
+        <div class="user-mobile-card text-center py-4 text-muted">
+            <i class="fas fa-user-slash fa-2x mb-2 text-secondary opacity-50"></i>
+            <p class="mb-0 fw-semibold">No users match your criteria.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if users.has_other_pages %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center pagination-sm">
+
     {% if users.has_previous %}
       <li class="page-item">
-        <a class="page-link" href="?page=1{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">First</a>
+        <a class="page-link" href="?page=1{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+            <i class="fas fa-angle-double-left"></i>
+        </a>
       </li>
       <li class="page-item">
-        <a class="page-link" href="?page={{ users.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">Previous</a>
+        <a class="page-link" href="?page={{ users.previous_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+            <i class="fas fa-angle-left"></i>
+        </a>
       </li>
     {% endif %}
 
-    <li class="page-item disabled">
-      <span class="page-link">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+    <li class="page-item active">
+      <span class="page-link px-3 fw-bold">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
     </li>
 
     {% if users.has_next %}
       <li class="page-item">
-        <a class="page-link" href="?page={{ users.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">Next</a>
+        <a class="page-link" href="?page={{ users.next_page_number }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+            <i class="fas fa-angle-right"></i>
+        </a>
       </li>
       <li class="page-item">
-        <a class="page-link" href="?page={{ users.paginator.num_pages }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}">Last</a>
+        <a class="page-link" href="?page={{ users.paginator.num_pages }}{% if search_term %}&q={{ search_term }}{% endif %}{% if selected_role %}&role={{ selected_role }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+            <i class="fas fa-angle-double-right"></i>
+        </a>
       </li>
     {% endif %}
 
   </ul>
 </nav>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title text-danger fw-bold mb-0" id="deleteUserModalLabel">
+            <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-3">
+        <p class="mb-1">Are you sure you want to delete user <strong id="deleteTargetUsername" class="text-dark"></strong>?</p>
+        <small class="text-muted">This operation will permanently remove the account and cannot be undone.</small>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <a id="deleteConfirmBtn" href="#" class="btn btn-danger fw-semibold">
+            <i class="fas fa-trash-alt me-1"></i> Delete User
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    function confirmUserDelete(userId, username, deleteUrl) {
+        document.getElementById('deleteTargetUsername').textContent = username;
+        document.getElementById('deleteConfirmBtn').href = deleteUrl;
+        const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+        modal.show();
+    }
+</script>
 {% endblock %}

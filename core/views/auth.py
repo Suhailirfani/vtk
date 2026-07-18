@@ -109,15 +109,29 @@ def approve_user(request, user_id):
 
 @staff_member_required
 def view_users(request):
-    query = request.GET.get('q')
-    role = request.GET.get('role')
+    query = request.GET.get('q', '').strip()
+    role = request.GET.get('role', '').strip()
+    status = request.GET.get('status', '').strip()
 
-    users = User.objects.all()
+    total_users_count = User.objects.count()
+    admin_count = User.objects.filter(role='admin').count()
+    team_count = User.objects.filter(Q(role='team') | Q(role='off_campus')).count()
+    pending_count = User.objects.filter(is_approved=False).count()
+
+    users = User.objects.all().select_related('team').order_by('-id')
 
     if query:
-        users = users.filter(Q(username__icontains=query) | Q(email__icontains=query))
+        users = users.filter(
+            Q(username__icontains=query) |
+            Q(email__icontains=query) |
+            Q(team__name__icontains=query)
+        )
     if role:
         users = users.filter(role=role)
+    if status == 'active':
+        users = users.filter(is_active=True)
+    elif status == 'inactive':
+        users = users.filter(is_active=False)
 
     paginator = Paginator(users, 10)
     page = request.GET.get('page')
@@ -125,8 +139,13 @@ def view_users(request):
 
     return render(request, 'view_users.html', {
         'users': users,
-        'search_term': query or '',
-        'selected_role': role or '',
+        'search_term': query,
+        'selected_role': role,
+        'selected_status': status,
+        'total_users_count': total_users_count,
+        'admin_count': admin_count,
+        'team_count': team_count,
+        'pending_count': pending_count,
     })
 
 @staff_member_required
