@@ -10,13 +10,19 @@ def get_program_assigned_count(program):
 
 def calculate_program_duration(program):
     """
-    Calculates total program duration in minutes based on participant count.
-    Total = (assigned_count * duration_per_participant) + buffer_margin_minutes
+    Calculates total program duration in minutes based on presentation mode.
+    - If presentation_mode == 'SIMULTANEOUS' (Essay, Drawing, Quiz):
+      Total = duration_per_participant + buffer_margin_minutes (All-at-once fixed duration)
+    - If presentation_mode == 'SEQUENTIAL' (Speech, Song):
+      Total = (assigned_count * duration_per_participant) + buffer_margin_minutes
     """
-    count = get_program_assigned_count(program)
-    if count == 0:
-        count = 1  # Default fallback calculation if no participants yet
-    duration = (count * program.duration_per_participant) + (program.buffer_margin_minutes or 0)
+    if program.presentation_mode == 'SIMULTANEOUS':
+        duration = program.duration_per_participant + (program.buffer_margin_minutes or 0)
+    else:
+        count = get_program_assigned_count(program)
+        if count == 0:
+            count = 1  # Default fallback calculation if no participants yet
+        duration = (count * program.duration_per_participant) + (program.buffer_margin_minutes or 0)
     return max(duration, 5)  # Minimum 5 minutes
 
 def get_program_contestants(program):
@@ -114,14 +120,16 @@ def detect_all_clashes():
         'total_clash_count': total_clash_count
     }
 
-def generate_smart_auto_schedule(daily_start=time(9, 0), daily_end=time(17, 0), buffer_between_programs_mins=5):
+def generate_smart_auto_schedule(buffer_between_programs_mins=5):
     """
     Auto-schedules all unscheduled programs across available FestDays and Stages.
     Respects:
-    1. STAGE programs -> STAGE venues, OFF_STAGE programs -> OFF_STAGE venues
-    2. Program total duration (participants * mins_per_part + buffer)
-    3. Stage time availability (no stage overlaps)
-    4. Participant time availability (no participant clashes)
+    1. Per-Day operating hours (FestDay.start_time to FestDay.end_time)
+    2. Stage Priority / Stage Preference (program.preferred_stage)
+    3. Presentation Mode (Sequential vs Simultaneous All-at-Once)
+    4. STAGE programs -> STAGE venues, OFF_STAGE programs -> OFF_STAGE venues
+    5. Stage time availability (no stage overlaps)
+    6. Participant time availability (no participant clashes)
     """
     fest_days = list(FestDay.objects.all().order_by('day_number'))
     stages = list(Stage.objects.all().order_by('stage_type', 'name'))
@@ -129,9 +137,13 @@ def generate_smart_auto_schedule(daily_start=time(9, 0), daily_end=time(17, 0), 
     if not fest_days or not stages:
         return {'error': 'Please add at least one Fest Day and one Stage before running Auto-Scheduler.'}
 
-    # Fetch unscheduled programs
+    # Fetch unscheduled programs (sort so programs with preferred_stage are scheduled first)
     scheduled_prog_ids = ProgramSchedule.objects.values_list('program_id', flat=True)
-    unscheduled_programs = list(Program.objects.exclude(id__in=scheduled_prog_ids).select_related('category'))
+    unscheduled_programs = list(
+        Program.objects.exclude(id__in=scheduled_prog_ids)
+        .select_related('category', 'preferred_stage')
+        .order_by('-preferred_stage_id', 'id')
+    )
 
     if not unscheduled_programs:
         return {'message': 'All programs are already scheduled!'}
@@ -163,8 +175,6 @@ def generate_smart_auto_schedule(daily_start=time(9, 0), daily_end=time(17, 0), 
     skipped_programs = []
 
     base_date = datetime.today().date()
-    day_start_dt = datetime.combine(base_date, daily_start)
-    day_end_dt = datetime.combine(base_date, daily_end)
 
     for program in unscheduled_programs:
         dur_mins = calculate_program_duration(program)
@@ -176,14 +186,21 @@ def generate_smart_auto_schedule(daily_start=time(9, 0), daily_end=time(17, 0), 
         valid_stages = [st for st in stages if st.stage_type == target_stage_type]
 
         if not valid_stages:
-            # Fallback to any stage if no matching venue type exists
-            valid_stages = stages
+            valid_stages = list(stages)
+
+        # Stage Priority: If program has a preferred stage, prioritize it first!
+        if program.preferred_stage and program.preferred_stage in valid_stages:
+            valid_stages.remove(program.preferred_stage)
+            valid_stages.insert(0, program.preferred_stage)
 
         is_placed = False
 
         for day in fest_days:
             if is_placed:
                 break
+
+            day_start_dt = datetime.combine(base_date, day.start_time)
+            day_end_dt = datetime.combine(base_date, day.end_time)
 
             for stage in valid_stages:
                 if is_placed:

@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
         <div>
             <h2 class="fw-bold text-white mb-1"><i class="fas fa-calendar-alt text-info me-2"></i> Fest Schedule & Clash Manager</h2>
-            <p class="text-muted small mb-0">Configure fest days, stages, auto-calculate program durations, and manage conflict-free timetables.</p>
+            <p class="text-muted small mb-0">Configure fest days with operating hours, stage priorities, sequential vs simultaneous modes, and clash-free timetables.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <button type="button" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#autoScheduleModal">
@@ -75,26 +75,30 @@
 
     <!-- Setup Row: Fest Days & Stages Config -->
     <div class="row g-4 mb-4">
-        <!-- Fest Days Card -->
+        <!-- Fest Days Card with Per-Day Operating Hours -->
         <div class="col-12 col-lg-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
                 <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-calendar-day me-2"></i> 1. Fest Days Configuration</h5>
+                    <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-calendar-day me-2"></i> 1. Fest Days & Operating Hours</h5>
                 </div>
                 <div class="card-body px-4">
                     <form action="{% url 'add_fest_day' %}" method="POST" class="row g-2 align-items-center mb-3">
                         {% csrf_token %}
-                        <div class="col-3">
-                            <input type="number" name="day_number" class="form-control rounded-3" placeholder="Day #" min="1" required>
-                        </div>
-                        <div class="col-4">
-                            <input type="date" name="date" class="form-control rounded-3">
+                        <div class="col-2">
+                            <input type="number" name="day_number" class="form-control rounded-3 form-control-sm" placeholder="Day #" min="1" required>
                         </div>
                         <div class="col-3">
-                            <input type="text" name="name" class="form-control rounded-3" placeholder="Label (Day 1)">
+                            <input type="date" name="date" class="form-control rounded-3 form-control-sm">
                         </div>
                         <div class="col-2">
-                            <button type="submit" class="btn btn-primary w-100 rounded-3 fw-bold">+</button>
+                            <input type="time" name="start_time" value="09:00" class="form-control rounded-3 form-control-sm" title="Start Time" required>
+                        </div>
+                        <div class="col-2">
+                            <input type="time" name="end_time" value="21:00" class="form-control rounded-3 form-control-sm" title="End Time" required>
+                        </div>
+                        <div class="col-3 d-flex gap-1">
+                            <input type="text" name="name" class="form-control rounded-3 form-control-sm" placeholder="Label">
+                            <button type="submit" class="btn btn-primary rounded-3 btn-sm fw-bold">+</button>
                         </div>
                     </form>
 
@@ -104,6 +108,7 @@
                                 <tr>
                                     <th>Day #</th>
                                     <th>Date</th>
+                                    <th>Operating Hours</th>
                                     <th>Label</th>
                                     <th class="text-end">Action</th>
                                 </tr>
@@ -113,6 +118,7 @@
                                     <tr>
                                         <td class="fw-bold text-primary">Day {{ day.day_number }}</td>
                                         <td>{{ day.date|date:"d M Y"|default:"--" }}</td>
+                                        <td><span class="badge bg-warning text-dark"><i class="far fa-clock me-1"></i>{{ day.start_time|time:"h:i A" }} - {{ day.end_time|time:"h:i A" }}</span></td>
                                         <td>{{ day.name|default:"--" }}</td>
                                         <td class="text-end">
                                             <form action="{% url 'delete_fest_day' day.id %}" method="POST" class="d-inline" onsubmit="return confirm('Delete Day {{ day.day_number }}?');">
@@ -122,7 +128,7 @@
                                         </td>
                                     </tr>
                                 {% empty %}
-                                    <tr><td colspan="4" class="text-center text-muted py-3">No fest days added yet. Please add at least one fest day.</td></tr>
+                                    <tr><td colspan="5" class="text-center text-muted py-3">No fest days added yet. Please add at least one fest day.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -203,7 +209,7 @@
         <div class="card-body px-4">
             {% for day_matrix in timetable_by_day %}
                 <h6 class="fw-bold text-dark border-bottom pb-2 mt-3 mb-3">
-                    <i class="fas fa-calendar-day text-info me-1"></i> Day {{ day_matrix.day.day_number }} {% if day_matrix.day.name %}({{ day_matrix.day.name }}){% endif %} {% if day_matrix.day.date %}- {{ day_matrix.day.date|date:"d M Y" }}{% endif %}
+                    <i class="fas fa-calendar-day text-info me-1"></i> Day {{ day_matrix.day.day_number }} {% if day_matrix.day.name %}({{ day_matrix.day.name }}){% endif %} - <span class="text-primary">{{ day_matrix.day.start_time|time:"h:i A" }} to {{ day_matrix.day.end_time|time:"h:i A" }}</span>
                 </h6>
 
                 <div class="row g-3 mb-4">
@@ -246,21 +252,22 @@
     <!-- Programs Schedule Management Table -->
     <div class="card border-0 shadow-sm rounded-4 bg-white">
         <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-tasks me-2"></i> Program Schedule & Duration Settings</h5>
+            <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-tasks me-2"></i> Program Schedule, Duration Mode & Stage Priority</h5>
         </div>
         <div class="card-body px-4">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
                     <thead class="table-light">
                         <tr>
                             <th>Program Name</th>
-                            <th>Category</th>
                             <th>Venue Type</th>
-                            <th>Assigned</th>
-                            <th>Duration / Part</th>
+                            <th>Mode</th>
+                            <th>Stage Priority</th>
+                            <th>Part.</th>
+                            <th>Mins/Part (or Fixed)</th>
                             <th>Buffer</th>
-                            <th>Total Mins</th>
-                            <th>Current Schedule Slot</th>
+                            <th>Total</th>
+                            <th>Schedule Slot</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -269,33 +276,49 @@
                             <tr id="programRow{{ item.program.id }}" data-assigned="{{ item.assigned_count }}">
                                 <td class="fw-bold text-dark">
                                     {{ item.program.name }}
-                                    {% if item.program.is_group %}
-                                        <span class="badge bg-purple rounded-pill text-white ms-1" style="font-size: 0.65rem;">Group</span>
-                                    {% endif %}
+                                    <div class="text-muted small font-normal" style="font-size: 0.725rem;">{{ item.program.category.name }}</div>
                                 </td>
-                                <td><span class="badge bg-light text-dark border">{{ item.program.category.name }}</span></td>
                                 
-                                <!-- Program Type Badge -->
-                                <td>
-                                    <form id="configForm{{ item.program.id }}" action="{% url 'update_program_duration' item.program.id %}" method="POST" class="d-inline-flex gap-1 align-items-center">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="is_ajax" value="1">
+                                <form id="configForm{{ item.program.id }}" action="{% url 'update_program_duration' item.program.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="is_ajax" value="1">
+                                    
+                                    <!-- Venue Type -->
+                                    <td>
                                         <select name="program_type" class="form-select form-select-sm rounded-2" onchange="updateProgramConfig(this, {{ item.program.id }})">
                                             <option value="STAGE" {% if item.program.program_type == 'STAGE' %}selected{% endif %}>Stage</option>
                                             <option value="OFF_STAGE" {% if item.program.program_type == 'OFF_STAGE' %}selected{% endif %}>Off-Stage</option>
                                         </select>
-                                </td>
+                                    </td>
 
-                                <td><span class="badge bg-secondary rounded-pill">{{ item.assigned_count }}</span></td>
+                                    <!-- Presentation Mode -->
+                                    <td>
+                                        <select name="presentation_mode" class="form-select form-select-sm rounded-2 mode-select" onchange="updateProgramConfig(this, {{ item.program.id }})">
+                                            <option value="SEQUENTIAL" {% if item.program.presentation_mode == 'SEQUENTIAL' %}selected{% endif %}>Per Person (Speech/Song)</option>
+                                            <option value="SIMULTANEOUS" {% if item.program.presentation_mode == 'SIMULTANEOUS' %}selected{% endif %}>All-at-Once (Essay/Drawing)</option>
+                                        </select>
+                                    </td>
 
-                                <!-- Duration per participant input -->
-                                <td>
+                                    <!-- Preferred Stage / Stage Priority -->
+                                    <td>
+                                        <select name="preferred_stage_id" class="form-select form-select-sm rounded-2" onchange="updateProgramConfig(this, {{ item.program.id }})">
+                                            <option value="">Default Auto</option>
+                                            {% for st in stages %}
+                                                <option value="{{ st.id }}" {% if item.program.preferred_stage_id == st.id %}selected{% endif %}>⭐ {{ st.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <td><span class="badge bg-secondary rounded-pill">{{ item.assigned_count }}</span></td>
+
+                                    <!-- Duration per participant input -->
+                                    <td>
                                         <input type="number" name="duration_per_participant" value="{{ item.program.duration_per_participant }}" class="form-control form-control-sm rounded-2 duration-input" style="width: 65px;" min="1" onchange="updateProgramConfig(this, {{ item.program.id }})">
-                                </td>
-                                <td>
-                                        <input type="number" name="buffer_margin_minutes" value="{{ item.program.buffer_margin_minutes }}" class="form-control form-control-sm rounded-2 buffer-input" style="width: 60px;" min="0" onchange="updateProgramConfig(this, {{ item.program.id }})">
-                                    </form>
-                                </td>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="buffer_margin_minutes" value="{{ item.program.buffer_margin_minutes }}" class="form-control form-control-sm rounded-2 buffer-input" style="width: 55px;" min="0" onchange="updateProgramConfig(this, {{ item.program.id }})">
+                                    </td>
+                                </form>
 
                                 <td class="fw-bold text-primary total-duration-badge" id="totalDurationBadge{{ item.program.id }}">{{ item.calculated_duration }}m</td>
 
@@ -340,7 +363,7 @@
                                                             <select name="fest_day_id" class="form-select rounded-3" required>
                                                                 {% for d in fest_days %}
                                                                     <option value="{{ d.id }}" {% if item.has_schedule and item.schedule.fest_day_id == d.id %}selected{% endif %}>
-                                                                        Day {{ d.day_number }} {% if d.name %}({{ d.name }}){% endif %}
+                                                                        Day {{ d.day_number }} {% if d.name %}({{ d.name }}){% endif %} [{{ d.start_time|time:"h:i A" }} - {{ d.end_time|time:"h:i A" }}]
                                                                     </option>
                                                                 {% endfor %}
                                                             </select>
@@ -369,7 +392,7 @@
                                                         </div>
 
                                                         <div class="alert alert-info rounded-3 small mb-0">
-                                                            <i class="fas fa-info-circle me-1"></i> Auto-calculated duration: <strong id="modalCalcDur{{ item.program.id }}">{{ item.calculated_duration }} minutes</strong> ({{ item.assigned_count }} participants × {{ item.program.duration_per_participant }} mins + {{ item.program.buffer_margin_minutes }}m buffer).
+                                                            <i class="fas fa-info-circle me-1"></i> Auto-calculated duration: <strong id="modalCalcDur{{ item.program.id }}">{{ item.calculated_duration }} minutes</strong>.
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer border-0 pt-0">
@@ -401,23 +424,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
-                    <p class="text-muted small">
+                    <p class="text-muted small mb-3">
                         Automatically schedules all unscheduled programs across configured Fest Days and Stages while avoiding participant and stage clashes!
                     </p>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Daily Start Time</label>
-                            <input type="time" name="daily_start_time" class="form-control rounded-3" value="09:00" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Daily End Time</label>
-                            <input type="time" name="daily_end_time" class="form-control rounded-3" value="17:00" required>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-warning rounded-3 small mb-0">
-                        <i class="fas fa-lightbulb me-1"></i> Respects <strong>Stage</strong> vs <strong>Off-Stage</strong> venue matching and calculates durations automatically.
+                    <div class="alert alert-info rounded-3 small mb-0">
+                        <ul class="mb-0 ps-3">
+                            <li>Respects each Fest Day's operating hours (e.g. 09:00 AM to 09:00 PM).</li>
+                            <li>Prioritizes <strong>Stage Priority</strong> (popular events on Stage 1 first).</li>
+                            <li>Calculates durations for <strong>Sequential</strong> vs <strong>Simultaneous All-at-Once</strong> (Essay/Drawing) programs automatically.</li>
+                            <li>Matches <strong>Stage</strong> vs <strong>Off-Stage</strong> venues.</li>
+                        </ul>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -454,18 +471,23 @@ function updateProgramConfig(elem, programId) {
     const form = document.getElementById('configForm' + programId);
     const formData = new FormData(form);
 
-    // Calculate duration live locally for 0ms response
+    // Local 0ms duration calculation
     const assignedCount = parseInt(row.dataset.assigned) || 0;
+    const mode = formData.get('presentation_mode');
     const durPerPart = parseInt(formData.get('duration_per_participant')) || 1;
     const bufMins = parseInt(formData.get('buffer_margin_minutes')) || 0;
     
-    let effectiveCount = assignedCount === 0 ? 1 : assignedCount;
-    let localTotal = (effectiveCount * durPerPart) + bufMins;
+    let localTotal = 0;
+    if (mode === 'SIMULTANEOUS') {
+        localTotal = durPerPart + bufMins;
+    } else {
+        let effectiveCount = assignedCount === 0 ? 1 : assignedCount;
+        localTotal = (effectiveCount * durPerPart) + bufMins;
+    }
     localTotal = Math.max(localTotal, 5);
 
     document.getElementById('totalDurationBadge' + programId).innerText = localTotal + 'm';
 
-    // Send async AJAX fetch in background
     fetch(form.action, {
         method: 'POST',
         body: formData,
@@ -478,7 +500,7 @@ function updateProgramConfig(elem, programId) {
         if (data.status === 'success') {
             document.getElementById('totalDurationBadge' + programId).innerText = data.calculated_duration + 'm';
             updateClashCounters(data.total_clashes);
-            showToast('⚡ Updated duration settings (' + data.calculated_duration + 'm)');
+            showToast('⚡ Saved: ' + data.calculated_duration + 'm duration');
         }
     })
     .catch(err => console.error(err));
@@ -499,11 +521,9 @@ function submitScheduleModalAJAX(e, programId) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            // Update slot badge
             document.getElementById('slotBadgeCell' + programId).innerHTML = 
                 '<span class="badge bg-success-subtle text-success border border-success px-2 py-1 rounded-2">' + data.slot_text + '</span>';
             
-            // Close modal
             const modalEl = document.getElementById('scheduleModal' + programId);
             const modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();

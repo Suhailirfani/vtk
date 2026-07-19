@@ -64,14 +64,20 @@ class Program(models.Model):
         ('STAGE', 'Stage Program'),
         ('OFF_STAGE', 'Off-Stage Program'),
     )
+    PRESENTATION_MODES = (
+        ('SEQUENTIAL', 'Per Participant (Sequential)'),
+        ('SIMULTANEOUS', 'All-at-Once (Simultaneous/Written)'),
+    )
     competition = models.ForeignKey(Competition, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     is_group = models.BooleanField(default=False, null=True)
     members_count = models.PositiveIntegerField(null=True, blank=True, default=1)
     program_type = models.CharField(max_length=15, choices=PROGRAM_TYPES, default='STAGE')
-    duration_per_participant = models.PositiveIntegerField(default=5, help_text="Duration in minutes per participant/group")
+    presentation_mode = models.CharField(max_length=15, choices=PRESENTATION_MODES, default='SEQUENTIAL', help_text="Sequential (Speech/Song) vs Simultaneous (Essay/Drawing)")
+    duration_per_participant = models.PositiveIntegerField(default=5, help_text="Duration in minutes per participant (or total fixed mins if simultaneous)")
     buffer_margin_minutes = models.PositiveIntegerField(default=0, help_text="Extra buffer time in minutes")
+    preferred_stage = models.ForeignKey('Stage', on_delete=models.SET_NULL, null=True, blank=True, related_name='preferred_programs', help_text="Priority stage venue for popular events")
     is_announced = models.BooleanField(default=False, help_text="Make results public")
     announced_at = models.DateTimeField(null=True, blank=True)
     result_number = models.PositiveIntegerField(null=True, blank=True)  # 🆕 new field
@@ -204,16 +210,19 @@ class FestDay(models.Model):
     day_number = models.PositiveIntegerField(unique=True)
     date = models.DateField(null=True, blank=True)
     name = models.CharField(max_length=100, blank=True)
+    start_time = models.TimeField(default='09:00', help_text="Operating start time for this day")
+    end_time = models.TimeField(default='21:00', help_text="Operating end time for this day")
 
     class Meta:
         ordering = ['day_number']
 
     def __str__(self):
+        time_str = f"[{self.start_time.strftime('%I:%M %p')} - {self.end_time.strftime('%I:%M %p')}]"
         if self.name:
-            return f"Day {self.day_number} ({self.name})"
+            return f"Day {self.day_number} ({self.name}) {time_str}"
         if self.date:
-            return f"Day {self.day_number} - {self.date.strftime('%d %b %Y')}"
-        return f"Day {self.day_number}"
+            return f"Day {self.day_number} - {self.date.strftime('%d %b %Y')} {time_str}"
+        return f"Day {self.day_number} {time_str}"
 
 
 class Stage(models.Model):

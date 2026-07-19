@@ -75,6 +75,8 @@ def add_fest_day(request):
     day_number = request.POST.get('day_number')
     date_str = request.POST.get('date')
     name = request.POST.get('name', '').strip()
+    start_time_str = request.POST.get('start_time', '09:00')
+    end_time_str = request.POST.get('end_time', '21:00')
 
     if day_number:
         parsed_date = None
@@ -83,10 +85,20 @@ def add_fest_day(request):
                 parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             except ValueError:
                 pass
+
+        try:
+            st_time = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            st_time = time(9, 0)
+
+        try:
+            en_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            en_time = time(21, 0)
         
         FestDay.objects.get_or_create(
             day_number=int(day_number),
-            defaults={'date': parsed_date, 'name': name}
+            defaults={'date': parsed_date, 'name': name, 'start_time': st_time, 'end_time': en_time}
         )
         messages.success(request, f"Fest Day {day_number} added successfully!")
 
@@ -142,12 +154,21 @@ def update_program_duration(request, program_id):
 
     program = get_object_or_404(Program, id=program_id)
     program_type = request.POST.get('program_type', 'STAGE')
+    presentation_mode = request.POST.get('presentation_mode', 'SEQUENTIAL')
     dur_per_part = request.POST.get('duration_per_participant', '5')
     buffer_mins = request.POST.get('buffer_margin_minutes', '0')
+    preferred_stage_id = request.POST.get('preferred_stage_id', '')
 
     program.program_type = program_type
+    program.presentation_mode = presentation_mode
     program.duration_per_participant = max(int(dur_per_part), 1)
     program.buffer_margin_minutes = max(int(buffer_mins), 0)
+
+    if preferred_stage_id:
+        program.preferred_stage_id = int(preferred_stage_id)
+    else:
+        program.preferred_stage = None
+
     program.save()
 
     calc_dur = calculate_program_duration(program)
@@ -266,17 +287,18 @@ def run_auto_scheduler(request):
     if request.user.role != 'admin' or request.method != 'POST':
         return redirect('manage_schedule')
 
-    start_str = request.POST.get('daily_start_time', '09:00')
-    end_str = request.POST.get('daily_end_time', '17:00')
+    res = generate_smart_auto_schedule()
 
-    try:
-        daily_start = datetime.strptime(start_str, '%H:%M').time()
-        daily_end = datetime.strptime(end_str, '%H:%M').time()
-    except ValueError:
-        daily_start = time(9, 0)
-        daily_end = time(17, 0)
+    if 'error' in res:
+        messages.error(request, res['error'])
+    else:
+        sched_count = res.get('scheduled_count', 0)
+        skip_count = res.get('skipped_count', 0)
+        messages.success(request, f"Smart Auto-Scheduler completed! Successfully scheduled {sched_count} programs.")
+        if skip_count > 0:
+            messages.warning(request, f"Could not fit {skip_count} programs into available time slots. Consider adding another fest day/stage or extending operating hours.")
 
-    res = generate_smart_auto_schedule(daily_start=daily_start, daily_end=daily_end)
+    return redirect('manage_schedule')
 
     if 'error' in res:
         messages.error(request, res['error'])
