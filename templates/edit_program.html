@@ -26,6 +26,44 @@
                             </select>
                         </div>
 
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <label for="program_type" class="form-label fw-bold text-secondary">Venue Type</label>
+                                <select name="program_type" id="program_type" class="form-select border-secondary-subtle">
+                                    <option value="STAGE" {% if program.program_type == 'STAGE' %}selected{% endif %}>Stage Program</option>
+                                    <option value="OFF_STAGE" {% if program.program_type == 'OFF_STAGE' %}selected{% endif %}>Off-Stage Program</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label for="presentation_mode" class="form-label fw-bold text-secondary">Duration Mode</label>
+                                <select name="presentation_mode" id="presentation_mode" class="form-select border-secondary-subtle">
+                                    <option value="SEQUENTIAL" {% if program.presentation_mode == 'SEQUENTIAL' %}selected{% endif %}>Per Person (Speech/Song)</option>
+                                    <option value="SIMULTANEOUS" {% if program.presentation_mode == 'SIMULTANEOUS' %}selected{% endif %}>All-at-Once (Essay/Drawing)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <label for="duration_per_participant" class="form-label fw-bold text-secondary">Duration (Minutes)</label>
+                                <input type="number" name="duration_per_participant" id="duration_per_participant" value="{{ program.duration_per_participant }}" class="form-control border-secondary-subtle" min="1" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="buffer_margin_minutes" class="form-label fw-bold text-secondary">Buffer (Minutes)</label>
+                                <input type="number" name="buffer_margin_minutes" id="buffer_margin_minutes" value="{{ program.buffer_margin_minutes }}" class="form-control border-secondary-subtle" min="0" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="preferred_stage" class="form-label fw-bold text-secondary">Stage Priority (Optional)</label>
+                            <select name="preferred_stage" id="preferred_stage" class="form-select border-secondary-subtle">
+                                <option value="">-- Default Auto Scheduling --</option>
+                                {% for st in stages %}
+                                    <option value="{{ st.id }}" {% if program.preferred_stage_id == st.id %}selected{% endif %}>⭐ {{ st.name }} [{{ st.get_stage_type_display }}]</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
                             <a href="{% url 'program_list' %}" class="btn btn-outline-secondary px-4"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
                             <button type="submit" class="btn btn-success px-4"><i class="fas fa-save me-2"></i>Update Program</button>

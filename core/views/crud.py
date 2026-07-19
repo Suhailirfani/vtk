@@ -115,6 +115,7 @@ def add_program(request):
         return redirect('dashboard_team')
 
     categories = Category.objects.all()
+    stages = Stage.objects.all()
     programs = Program.objects.all().order_by('-id')
 
     if request.method == 'POST':
@@ -124,16 +125,56 @@ def add_program(request):
             try:
                 df = pd.read_excel(excel_file)
                 for _, row in df.iterrows():
-                    name = row.get("name")
-                    category_name = row.get("category")
+                    name = str(row.get("name", "") or row.get("Program Name", "")).strip()
+                    category_name = str(row.get("category", "") or row.get("Category", "")).strip()
 
-                    if name and category_name:
+                    if name and category_name and name.lower() != 'nan' and category_name.lower() != 'nan':
                         try:
-                            category = Category.objects.get(name=category_name)
-                            Program.objects.create(name=name, category=category)
+                            category = Category.objects.get(name__iexact=category_name)
+                            
+                            members_cnt = row.get("members_count") or row.get("Members") or 1
+                            try:
+                                members_cnt = int(members_cnt)
+                            except (ValueError, TypeError):
+                                members_cnt = 1
+
+                            ptype = str(row.get("type", "") or row.get("program_type", "") or row.get("Venue Type", "")).strip().upper()
+                            ptype_val = "OFF_STAGE" if "OFF" in ptype else "STAGE"
+
+                            pmode = str(row.get("mode", "") or row.get("presentation_mode", "") or row.get("Mode", "")).strip().upper()
+                            pmode_val = "SIMULTANEOUS" if any(x in pmode for x in ["SIMULTANEOUS", "ALL", "WRITTEN", "ESSAY"]) else "SEQUENTIAL"
+
+                            dur = row.get("duration") or row.get("duration_per_participant") or row.get("Duration") or 5
+                            try:
+                                dur = int(dur)
+                            except (ValueError, TypeError):
+                                dur = 5
+
+                            buf = row.get("buffer") or row.get("buffer_margin_minutes") or row.get("Buffer") or 0
+                            try:
+                                buf = int(buf)
+                            except (ValueError, TypeError):
+                                buf = 0
+
+                            pref_stage_name = str(row.get("stage") or row.get("preferred_stage") or row.get("Stage Priority") or "").strip()
+                            pref_stage = None
+                            if pref_stage_name and pref_stage_name.lower() != 'nan':
+                                pref_stage = Stage.objects.filter(name__iexact=pref_stage_name).first()
+
+                            Program.objects.create(
+                                name=name,
+                                category=category,
+                                is_group=(members_cnt > 1),
+                                members_count=members_cnt,
+                                program_type=ptype_val,
+                                presentation_mode=pmode_val,
+                                duration_per_participant=dur,
+                                buffer_margin_minutes=buf,
+                                preferred_stage=pref_stage
+                            )
                         except Category.DoesNotExist:
                             messages.warning(request, f"Category '{category_name}' not found for program '{name}'. Skipped.")
-                messages.success(request, "Bulk upload completed successfully.")
+                messages.success(request, "Bulk upload completed successfully with schedule settings.")
             except Exception as e:
                 messages.error(request, f"Error processing Excel file: {e}")
 
@@ -142,16 +183,39 @@ def add_program(request):
         else:
             name = request.POST.get('name')
             category_id = request.POST.get('category')
+            members_count = request.POST.get('members_count', '1')
+            program_type = request.POST.get('program_type', 'STAGE')
+            presentation_mode = request.POST.get('presentation_mode', 'SEQUENTIAL')
+            duration_per_participant = request.POST.get('duration_per_participant', '5')
+            buffer_margin_minutes = request.POST.get('buffer_margin_minutes', '0')
+            preferred_stage_id = request.POST.get('preferred_stage')
 
             if name and category_id:
                 category = Category.objects.get(id=category_id)
-                Program.objects.create(name=name, category=category)
+                pref_stage = Stage.objects.filter(id=preferred_stage_id).first() if preferred_stage_id else None
+                cnt = int(members_count) if members_count and members_count.isdigit() else 1
+
+                Program.objects.create(
+                    name=name,
+                    category=category,
+                    is_group=(cnt > 1),
+                    members_count=cnt,
+                    program_type=program_type,
+                    presentation_mode=presentation_mode,
+                    duration_per_participant=int(duration_per_participant or 5),
+                    buffer_margin_minutes=int(buffer_margin_minutes or 0),
+                    preferred_stage=pref_stage
+                )
                 messages.success(request, f"Program '{name}' added successfully under {category.name}.")
                 return redirect('add_program')
             else:
                 messages.error(request, "All fields are required.")
 
-    return render(request, 'add_program.html', {'categories': categories, 'programs': programs})
+    return render(request, 'add_program.html', {
+        'categories': categories,
+        'stages': stages,
+        'programs': programs
+    })
 
 @login_required
 def edit_program(request, program_id):
@@ -160,16 +224,33 @@ def edit_program(request, program_id):
 
     program = get_object_or_404(Program, id=program_id)
     categories = Category.objects.all()
+    stages = Stage.objects.all()
 
     if request.method == 'POST':
         name = request.POST.get('name').strip()
         category_id = request.POST.get('category')
+        members_count = request.POST.get('members_count', '1')
+        program_type = request.POST.get('program_type', 'STAGE')
+        presentation_mode = request.POST.get('presentation_mode', 'SEQUENTIAL')
+        duration_per_participant = request.POST.get('duration_per_participant', '5')
+        buffer_margin_minutes = request.POST.get('buffer_margin_minutes', '0')
+        preferred_stage_id = request.POST.get('preferred_stage')
 
         if name and category_id:
             category = get_object_or_404(Category, id=category_id)
+            cnt = int(members_count) if members_count and members_count.isdigit() else 1
+
             program.name = name
             program.category = category
+            program.is_group = (cnt > 1)
+            program.members_count = cnt
+            program.program_type = program_type
+            program.presentation_mode = presentation_mode
+            program.duration_per_participant = int(duration_per_participant or 5)
+            program.buffer_margin_minutes = int(buffer_margin_minutes or 0)
+            program.preferred_stage = Stage.objects.filter(id=preferred_stage_id).first() if preferred_stage_id else None
             program.save()
+
             messages.success(request, "Program updated successfully.")
             return redirect('add_program')
         else:
@@ -177,7 +258,8 @@ def edit_program(request, program_id):
 
     return render(request, 'edit_program.html', {
         'program': program,
-        'categories': categories
+        'categories': categories,
+        'stages': stages
     })
 
 @login_required

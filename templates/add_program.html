@@ -33,6 +33,44 @@
                             <input type="number" name="members_count" id="members_count" class="form-control" placeholder="e.g., 2 or 4 (Defaults to 1)">
                         </div>
 
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label for="program_type" class="form-label fw-semibold">Venue Type</label>
+                                <select name="program_type" id="program_type" class="form-select">
+                                    <option value="STAGE">Stage Program</option>
+                                    <option value="OFF_STAGE">Off-Stage Program</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label for="presentation_mode" class="form-label fw-semibold">Duration Mode</label>
+                                <select name="presentation_mode" id="presentation_mode" class="form-select">
+                                    <option value="SEQUENTIAL">Per Person (Speech/Song)</option>
+                                    <option value="SIMULTANEOUS">All-at-Once (Essay/Drawing)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label for="duration_per_participant" class="form-label fw-semibold">Duration (Mins)</label>
+                                <input type="number" name="duration_per_participant" id="duration_per_participant" class="form-control" value="5" min="1" placeholder="Mins per part or fixed total">
+                            </div>
+                            <div class="col-6">
+                                <label for="buffer_margin_minutes" class="form-label fw-semibold">Buffer (Mins)</label>
+                                <input type="number" name="buffer_margin_minutes" id="buffer_margin_minutes" class="form-control" value="0" min="0" placeholder="Extra buffer">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="preferred_stage" class="form-label fw-semibold">Stage Priority (Optional)</label>
+                            <select name="preferred_stage" id="preferred_stage" class="form-select">
+                                <option value="">-- Default Auto Scheduling --</option>
+                                {% for st in stages %}
+                                    <option value="{{ st.id }}">⭐ {{ st.name }} [{{ st.get_stage_type_display }}]</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mt-4">
                             <button type="submit" class="btn btn-success px-4"><i class="fas fa-save me-2"></i>Add Program</button>
                             <a href="{% url 'program_list' %}" class="btn btn-outline-secondary"><i class="fas fa-list me-2"></i>Program List</a>
@@ -49,7 +87,7 @@
                     <h5 class="card-title mb-0"><i class="fas fa-file-excel me-2"></i>Bulk Upload (Excel)</h5>
                 </div>
                 <div class="card-body p-4">
-                    <p class="text-muted small">Excel format requirements: Columns must be <code>name</code> and <code>category</code>. Category name must match one of the following exactly:</p>
+                    <p class="text-muted small">Required Excel columns: <code>name</code> and <code>category</code>. Optional schedule columns: <code>type</code>, <code>mode</code>, <code>duration</code>, <code>buffer</code>, <code>stage</code>.</p>
                     <div class="mb-3">
                         {% for category in categories %}
                             <span class="badge bg-secondary me-1">{{ category.name }}</span>
@@ -63,16 +101,28 @@
                                 <tr>
                                     <th>name</th>
                                     <th>category</th>
+                                    <th>type</th>
+                                    <th>mode</th>
+                                    <th>duration</th>
+                                    <th>stage</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Song</td>
+                                    <td>Speech</td>
                                     <td>SENIOR</td>
+                                    <td>Stage</td>
+                                    <td>Sequential</td>
+                                    <td>5</td>
+                                    <td>Stage 1</td>
                                 </tr>
                                 <tr>
-                                    <td>Speech</td>
+                                    <td>Essay</td>
                                     <td>SUBJUNIOR</td>
+                                    <td>Off-Stage</td>
+                                    <td>Simultaneous</td>
+                                    <td>40</td>
+                                    <td>Stage 4</td>
                                 </tr>
                             </tbody>
                         </table>
