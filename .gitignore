@@ -23,8 +23,11 @@ wheels/
 .installed.cfg
 *.egg
 
-# Database (optional - ignore local sqlite if needed)
-# db.sqlite3
+# Database
+db.sqlite3
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
 
 # Static / Media
 *.log
