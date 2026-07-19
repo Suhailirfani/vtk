@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
-from ..models import Program, Category, Team, Contestant, Participation, GroupParticipation
+from ..models import Program, Category, Team, Contestant, Participation, GroupParticipation, Stage
 from ..forms import ContestantForm, TeamForm
 
 def face_page(request):
