@@ -607,6 +607,8 @@ def view_results(request):
         categories_query = categories_query.filter(program__is_announced=True)
     categories = categories_query.order_by('name')
 
+    suggested_announcements = get_top_5_balancing_announcement_suggestions() if is_admin else []
+
     return render(
         request,
         'view_results.html',
@@ -616,6 +618,7 @@ def view_results(request):
             'is_admin': is_admin,
             'view_mode': view_mode,
             'announced_only': announced_only,
+            'suggested_announcements': suggested_announcements,
         }
     )
 
