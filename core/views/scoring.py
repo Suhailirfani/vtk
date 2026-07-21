@@ -1343,5 +1343,57 @@ def announcement_balancer(request):
         'public_team_scores': public_team_scores,
     })
 
+def shareable_results_view(request):
+    """Public page with shareable winner cards (1st, 2nd, 3rd rank) downloadable as JPEG"""
+    programs = Program.objects.filter(is_announced=True).distinct()
+    
+    cards_data = []
+    for prog in programs:
+        if prog.is_group:
+            winners = GroupParticipation.objects.filter(
+                program=prog,
+                rank__in=[1, 2, 3]
+            ).select_related('team').prefetch_related('contestants').order_by('rank')
+            
+            winners_list = []
+            for gp in winners:
+                members = ", ".join([c.name for c in gp.contestants.all()])
+                winners_list.append({
+                    'rank': gp.rank,
+                    'name': gp.group_name or f"Group {gp.code_letter or ''}",
+                    'team': gp.team.name if gp.team else '',
+                    'members': members,
+                    'marks': gp.marks,
+                    'grade': gp.grade
+                })
+        else:
+            winners = Participation.objects.filter(
+                program=prog,
+                rank__in=[1, 2, 3]
+            ).select_related('contestant', 'contestant__team').order_by('rank')
+            
+            winners_list = []
+            for p in winners:
+                winners_list.append({
+                    'rank': p.rank,
+                    'name': p.contestant.name if p.contestant else '',
+                    'team': p.contestant.team.name if p.contestant and p.contestant.team else '',
+                    'members': '',
+                    'marks': p.marks,
+                    'grade': p.grade
+                })
+
+        if winners_list:
+            cards_data.append({
+                'program': prog,
+                'winners': winners_list
+            })
+
+    fest_name = SystemSetting.get_setting('fest_name', 'Madrasa Fest')
+    return render(request, 'shareable_results.html', {
+        'cards_data': cards_data,
+        'fest_name': fest_name
+    })
+
 
 

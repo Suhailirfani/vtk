@@ -6,7 +6,10 @@
         <h3>📢 Manage Result Announcements</h3>
         <div>
             <a href="{% url 'announcement_balancer' %}" class="btn btn-warning fw-bold text-dark me-2">
-                <i class="fas fa-balance-scale me-1"></i>⚡ Standings Balancer Assistant
+                <i class="fas fa-balance-scale me-1"></i>⚡ Standings Balancer
+            </a>
+            <a href="{% url 'shareable_results' %}" class="btn btn-primary fw-bold me-2">
+                <i class="fas fa-trophy me-1"></i>🏆 Winner Cards
             </a>
             <a href="{% url 'public_results_home' %}" class="btn btn-success">Public View</a>
             <span class="badge bg-info fs-6 ms-2">{{ announced_count }}/{{ total_programs }} Announced</span>

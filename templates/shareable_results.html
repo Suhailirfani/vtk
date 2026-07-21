@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winner Cards – {{ fest_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- html2canvas for JPEG download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --gold:   #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+            --dark:   #0f0c29;
+            --card-bg: rgba(255,255,255,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        /* ── HEADER ─────────────────────────────────────────────── */
+        .page-header {
+            text-align: center;
+            padding: 40px 20px 20px;
+        }
+        .page-header .fest-title {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #a0aec0;
+            margin-bottom: 8px;
+        }
+        .page-header h1 {
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 900;
+            background: linear-gradient(90deg, #FFD700, #fff, #FFD700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .page-header .subtitle {
+            margin-top: 8px;
+            color: #a0aec0;
+            font-size: 0.95rem;
+        }
+
+        /* ── CONTROLS ────────────────────────────────────────────── */
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 24px 20px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+
+        .btn-gold    { background: linear-gradient(135deg, #f6d365, #fda085); color: #1a0a00; }
+        .btn-outline { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,0.3); }
+        .btn-dl-all  { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #003322; }
+
+        /* ── GRID ────────────────────────────────────────────────── */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 28px;
+            padding: 10px 36px 60px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ── WINNER CARD ─────────────────────────────────────────── */
+        .winner-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        .winner-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        /* category glow strip at top */
+        .winner-card .card-glow {
+            height: 4px;
+            width: 100%;
+        }
+        .cat-senior   { background: linear-gradient(90deg, #f093fb, #f5576c); }
+        .cat-junior   { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+        .cat-general  { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+        .cat-default  { background: linear-gradient(90deg, #FFD700, #fda085); }
+
+        .card-head {
+            padding: 18px 20px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .card-head .prog-name {
+            font-size: 1.05rem;
+            font-weight: 800;
+            line-height: 1.3;
+            color: #e2e8f0;
+        }
+        .card-head .cat-badge {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            color: #cbd5e0;
+        }
+        .card-head .type-badge {
+            float: right;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(255,215,0,0.15);
+            color: var(--gold);
+            border: 1px solid rgba(255,215,0,0.3);
+            margin-top: 6px;
+        }
+
+        /* ── RANK ROWS ───────────────────────────────────────────── */
+        .ranks-list { padding: 14px 20px 18px; display: flex; flex-direction: column; gap: 10px; }
+
+        .rank-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            transition: background 0.2s;
+        }
+        .rank-row:hover { background: rgba(255,255,255,0.09); }
+
+        /* medal icon */
+        .medal {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            font-weight: 900;
+        }
+        .medal-1 { background: linear-gradient(135deg, #FFD700, #b8860b); color: #3d2700; box-shadow: 0 0 12px rgba(255,215,0,0.5); }
+        .medal-2 { background: linear-gradient(135deg, #e0e0e0, #9e9e9e); color: #1a1a1a; box-shadow: 0 0 10px rgba(200,200,200,0.3); }
+        .medal-3 { background: linear-gradient(135deg, #cd7f32, #8b4513); color: #fff8f0; box-shadow: 0 0 10px rgba(205,127,50,0.4); }
+
+        .rank-info { flex: 1; min-width: 0; }
+        .rank-info .winner-name {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #f7fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .rank-info .team-name {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        .rank-info .members-name {
+            font-size: 0.7rem;
+            color: #718096;
+            margin-top: 2px;
+            font-style: italic;
+        }
+        .rank-info .grade-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 3px;
+        }
+        .grade-A  { background: rgba(72,199,142,0.2); color: #68d391; }
+        .grade-B  { background: rgba(99,179,237,0.2); color: #63b3ed; }
+        .grade-C  { background: rgba(246,173,85,0.2); color: #f6ad55; }
+        .grade-D  { background: rgba(252,129,129,0.2); color: #fc8181; }
+        .grade-X  { background: rgba(160,174,192,0.1); color: #a0aec0; }
+
+        /* marks pill */
+        .marks-pill {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            color: #e2e8f0;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* ── DOWNLOAD BTN per card ──────────────────────────────── */
+        .card-footer {
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .btn-dl-card {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 7px 16px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .btn-dl-card:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-dl-card:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── EMPTY STATE ─────────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #a0aec0;
+        }
+        .empty-state i { font-size: 4rem; margin-bottom: 16px; display: block; }
+        .empty-state h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+
+        /* ── DOWNLOAD OVERLAY ────────────────────────────────────── */
+        #dl-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,12,41,0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+        }
+        #dl-overlay.active { display: flex; }
+        #dl-overlay .spinner {
+            width: 50px; height: 50px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── SEARCH BAR ──────────────────────────────────────────── */
+        .search-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 0 20px 18px;
+        }
+        .search-wrap input {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 50px;
+            padding: 10px 22px;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            width: min(420px, 100%);
+            outline: none;
+            transition: border 0.2s;
+        }
+        .search-wrap input::placeholder { color: #718096; }
+        .search-wrap input:focus { border-color: rgba(255,215,0,0.5); }
+    </style>
+</head>
+<body>
+
+<!-- Download overlay spinner -->
+<div id="dl-overlay"><div class="spinner"></div><span style="color:#fff;font-weight:600">Preparing image…</span></div>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+<div class="page-header">
+    <p class="fest-title">{{ fest_name }}</p>
+    <h1>🏆 Winner Cards</h1>
+    <p class="subtitle">Top 3 performers for every announced program</p>
+</div>
+
+<!-- ═══ CONTROLS ═════════════════════════════════════════════════ -->
+<div class="controls">
+    <button class="btn btn-dl-all" onclick="downloadAll()">
+        <i class="fas fa-download"></i> Download All Cards
+    </button>
+    <a href="{% url 'public_results_home' %}" class="btn btn-outline">
+        <i class="fas fa-list"></i> Full Results Table
+    </a>
+    <a href="{% url 'manage_announcements' %}" class="btn btn-outline">
+        <i class="fas fa-cog"></i> Manage
+    </a>
+</div>
+
+<!-- ═══ SEARCH ════════════════════════════════════════════════════ -->
+<div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="🔍 Search by program name…" oninput="filterCards()">
+</div>
+
+<!-- ═══ CARDS GRID ════════════════════════════════════════════════ -->
+{% if cards_data %}
+<div class="cards-grid" id="cardsGrid">
+    {% for item in cards_data %}
+    {% with prog=item.program %}
+    <div class="winner-card" data-prog="{{ prog.name|lower }}">
+        <!-- Top glow strip by category -->
+        <div class="card-glow
+            {% if 'senior' in prog.category.name|lower %}cat-senior
+            {% elif 'junior' in prog.category.name|lower %}cat-junior
+            {% elif 'general' in prog.category.name|lower %}cat-general
+            {% else %}cat-default{% endif %}
+        "></div>
+
+        <!-- Card header -->
+        <div class="card-head">
+            <span class="type-badge">{% if prog.is_group %}Group{% else %}Solo{% endif %}</span>
+            <div class="prog-name">{{ prog.name }}</div>
+            <span class="cat-badge">{{ prog.category.name }}</span>
+        </div>
+
+        <!-- Rank rows -->
+        <div class="ranks-list">
+            {% for w in item.winners %}
+            <div class="rank-row">
+                <!-- Medal -->
+                <div class="medal medal-{{ w.rank }}">
+                    {% if w.rank == 1 %}🥇
+                    {% elif w.rank == 2 %}🥈
+                    {% else %}🥉{% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="rank-info">
+                    <div class="winner-name">{{ w.name }}</div>
+                    <div class="team-name">{{ w.team }}</div>
+                    {% if w.members %}
+                    <div class="members-name">{{ w.members }}</div>
+                    {% endif %}
+                    {% if w.grade %}
+                    <span class="grade-badge grade-{{ w.grade|upper|slice:':1' }}">Grade {{ w.grade }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Marks pill -->
+                {% if w.marks %}
+                <div class="marks-pill">{{ w.marks }} pts</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Download button -->
+        <div class="card-footer">
+            <button class="btn-dl-card" onclick="downloadCard(this, '{{ prog.name|escapejs }}')">
+                <i class="fas fa-image"></i> Save as JPEG
+            </button>
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-trophy"></i>
+    <h2>No results announced yet</h2>
+    <p>Announce programs to see winner cards here.</p>
+</div>
+{% endif %}
+
+<script>
+    /* ── SEARCH FILTER ───────────────────────────────────────────── */
+    function filterCards() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll('.winner-card').forEach(card => {
+            card.style.display = card.dataset.prog.includes(q) ? '' : 'none';
+        });
+    }
+
+    /* ── JPEG DOWNLOAD – single card ────────────────────────────── */
+    async function downloadCard(btn, progName) {
+        const card = btn.closest('.winner-card');
+
+        // temporarily hide footer so it's cleaner in image
+        const footer = card.querySelector('.card-footer');
+        footer.style.display = 'none';
+
+        showOverlay();
+        btn.disabled = true;
+
+        try {
+            const canvas = await html2canvas(card, {
+                backgroundColor: '#1a1040',
+                scale: 2.5,
+                useCORS: true,
+                logging: false,
+            });
+            const link = document.createElement('a');
+            link.download = safeFileName(progName) + '_winners.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.95);
+            link.click();
+        } finally {
+            footer.style.display = '';
+            btn.disabled = false;
+            hideOverlay();
+        }
+    }
+
+    /* ── JPEG DOWNLOAD – all visible cards ──────────────────────── */
+    async function downloadAll() {
+        const cards = [...document.querySelectorAll('.winner-card')]
+            .filter(c => c.style.display !== 'none');
+
+        if (!cards.length) { alert('No cards visible.'); return; }
+        showOverlay();
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const progName = card.dataset.prog;
+            const footer = card.querySelector('.card-footer');
+            footer.style.display = 'none';
+
+            try {
+                const canvas = await html2canvas(card, {
+                    backgroundColor: '#1a1040',
+                    scale: 2.5,
+                    useCORS: true,
+                    logging: false,
+                });
+                const link = document.createElement('a');
+                link.download = safeFileName(progName) + '_winners.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                link.click();
+                // small delay to avoid browser blocking multiple downloads
+                await sleep(350);
+            } finally {
+                footer.style.display = '';
+            }
+        }
+        hideOverlay();
+    }
+
+    function safeFileName(name) {
+        return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    }
+    function showOverlay() { document.getElementById('dl-overlay').classList.add('active'); }
+    function hideOverlay() { document.getElementById('dl-overlay').classList.remove('active'); }
+    function sleep(ms)     { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
