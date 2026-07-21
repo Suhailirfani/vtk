@@ -467,6 +467,108 @@
 
             .mobile-pwa-bar { display: block; }
         }
+
+        /* ================= LAUNCH ENTRANCE ANIMATIONS ================= */
+        @keyframes animNavDrop {
+            0% { opacity: 0; transform: translateY(-80px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes animTitleGrand {
+            0% { opacity: 0; transform: scale(0.75) translateY(-20px); filter: blur(10px); }
+            70% { transform: scale(1.03) translateY(0); filter: blur(0); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes animFlyLeft {
+            0% { opacity: 0; transform: translateX(-150px) scale(0.9); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        @keyframes animFlyRight {
+            0% { opacity: 0; transform: translateX(150px) scale(0.9); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        @keyframes animFlyUp {
+            0% { opacity: 0; transform: translateY(100px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes animPopBadge {
+            0% { opacity: 0; transform: scale(0.3); }
+            80% { transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Animation Application Classes */
+        .portal-navbar {
+            animation: animNavDrop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .portal-badge {
+            animation: animPopBadge 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+            opacity: 0;
+        }
+
+        .hero-title {
+            animation: animTitleGrand 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+            opacity: 0;
+        }
+
+        .malayalam-title {
+            animation: animFlyLeft 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+            opacity: 0;
+        }
+
+        .institution-hero-banner {
+            animation: animFlyRight 1s cubic-bezier(0.16, 1, 0.3, 1) 0.55s forwards;
+            opacity: 0;
+        }
+
+        .hero-action-group {
+            animation: animFlyUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+            opacity: 0;
+        }
+
+        /* Scroll Reveal Animation Trigger Classes */
+        .reveal-element {
+            opacity: 0;
+            transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+        }
+
+        .reveal-from-left {
+            transform: translateX(-120px) scale(0.92);
+        }
+
+        .reveal-from-right {
+            transform: translateX(120px) scale(0.92);
+        }
+
+        .reveal-from-bottom {
+            transform: translateY(100px) scale(0.92);
+        }
+
+        .reveal-element.is-visible {
+            opacity: 1;
+            transform: translateX(0) translateY(0) scale(1);
+        }
+
+        /* Interactive Hover Enhancements */
+        .stat-card-innovative:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(56, 189, 248, 0.25);
+            border-color: rgba(56, 189, 248, 0.5);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .module-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(56, 189, 248, 0.2);
+            border-color: rgba(56, 189, 248, 0.4);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
     </style>
 </head>
 <body>
@@ -551,19 +653,19 @@
 
     <!-- Live Stats Container -->
     <section class="stats-grid-container">
-        <div class="glass-panel stat-card-innovative">
+        <div class="glass-panel stat-card-innovative reveal-element reveal-from-left">
             <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
             <div class="stat-val">{{ programs|length }}</div>
             <div class="stat-lbl">Competition Programs</div>
         </div>
 
-        <div class="glass-panel stat-card-innovative">
+        <div class="glass-panel stat-card-innovative reveal-element reveal-from-bottom">
             <div class="stat-icon"><i class="fas fa-users-between-lines"></i></div>
             <div class="stat-val">{{ teams|length }}</div>
             <div class="stat-lbl">Participating Teams</div>
         </div>
 
-        <div class="glass-panel stat-card-innovative">
+        <div class="glass-panel stat-card-innovative reveal-element reveal-from-right">
             <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
             <div class="stat-val">{{ contestants|length }}</div>
             <div class="stat-lbl">Registered Contestants</div>
@@ -572,13 +674,13 @@
 
     <!-- Innovative Portal Modules Grid -->
     <section class="modules-section">
-        <h3 class="section-header-title">
+        <h3 class="section-header-title reveal-element reveal-from-bottom">
             <i class="fas fa-cubes text-info"></i> Portal Modules & Highlights
         </h3>
 
         <div class="modules-grid">
             <!-- Results Module -->
-            <div class="glass-panel module-card">
+            <div class="glass-panel module-card reveal-element reveal-from-left">
                 <div>
                     <div class="module-icon-badge bg-trophy">
                         <i class="fas fa-trophy"></i>
@@ -594,7 +696,7 @@
             </div>
 
             <!-- Leaderboard Module -->
-            <div class="glass-panel module-card">
+            <div class="glass-panel module-card reveal-element reveal-from-bottom">
                 <div>
                     <div class="module-icon-badge bg-leaderboard">
                         <i class="fas fa-chart-bar"></i>
@@ -610,7 +712,7 @@
             </div>
 
             <!-- Video Tutorial Module -->
-            <div class="glass-panel module-card">
+            <div class="glass-panel module-card reveal-element reveal-from-right">
                 <div>
                     <div class="module-icon-badge bg-video">
                         <i class="fab fa-youtube"></i>
@@ -665,6 +767,27 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // IntersectionObserver for Scroll Reveal Launch Animations
+        document.addEventListener("DOMContentLoaded", function () {
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: "0px 0px -40px 0px"
+            };
+
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach((entry, idx) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add("is-visible");
+                        }, idx * 100);
+                        obs.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll(".reveal-element").forEach(el => observer.observe(el));
+        });
+
         // Service Worker Registration for PWA Capability
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
