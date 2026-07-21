@@ -1327,5 +1327,21 @@ def bulk_announce_programs(request):
 
     return redirect('manage_announcements')
 
+@login_required
+def announcement_balancer(request):
+    """Dedicated Admin Assistant page for recommending Top 5 team-balancing announcements"""
+    if request.user.role != 'admin':
+        messages.error(request, 'Permission denied.')
+        return redirect('dashboard_admin')
+
+    teams = list(Team.objects.all())
+    public_team_scores = {t.name: recalculate_team_points(t, announced_only=True) for t in teams}
+    suggested_announcements = get_top_5_balancing_announcement_suggestions()
+
+    return render(request, 'announcement_balancer.html', {
+        'suggested_announcements': suggested_announcements,
+        'public_team_scores': public_team_scores,
+    })
+
 
 
