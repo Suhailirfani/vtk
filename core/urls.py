@@ -145,4 +145,5 @@ urlpatterns = [
     path('assigned-programs/delete/<int:participation_id>/', views.delete_assigned_program, name='delete_assigned_program'),
     path('program_list/', views.program_list, name='program_list'),
     path('results/winner-cards/', views.shareable_results_view, name='shareable_results'),
+    path('system-config/', views.system_config, name='system_config'),
 ]

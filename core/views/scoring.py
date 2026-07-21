@@ -709,6 +709,53 @@ def update_settings(request):
 
     return redirect('dashboard_admin')
 
+@login_required
+def system_config(request):
+    """Dedicated General System Configuration page (admin only)"""
+    if request.user.role != 'admin':
+        messages.error(request, 'Permission denied.')
+        return redirect('dashboard_admin')
+
+    if request.method == 'POST':
+        # Handle group point system
+        group_point_system = request.POST.get('group_point_system')
+        if group_point_system:
+            if group_point_system in ['member_count', 'fixed']:
+                setting, _ = SystemSetting.objects.get_or_create(key='group_point_system')
+                setting.value = group_point_system
+                setting.save()
+                for team in Team.objects.all():
+                    recalculate_team_points(team)
+                messages.success(request, f"Group points system updated to: {'Fixed Rank Points (10, 6, 3)' if group_point_system == 'fixed' else 'Participant Count Multiplier'}")
+            else:
+                messages.error(request, "Invalid setting value.")
+
+        # Handle fest name
+        fest_name = request.POST.get('fest_name', '').strip()
+        if fest_name:
+            setting, _ = SystemSetting.objects.get_or_create(key='fest_name')
+            setting.value = fest_name
+            setting.save()
+            messages.success(request, f"Fest name updated to: {fest_name}")
+        elif 'fest_name' in request.POST:
+            messages.error(request, "Fest name cannot be empty.")
+
+    # Build context
+    group_point_system = SystemSetting.get_setting('group_point_system', 'member_count')
+    fest_name = SystemSetting.get_setting('fest_name', 'Madrasa Fest')
+    total_programs = Program.objects.count()
+    announced_programs = Program.objects.filter(is_announced=True).count()
+
+    return render(request, 'system_config.html', {
+        'group_point_system': group_point_system,
+        'fest_name': fest_name,
+        'total_programs': total_programs,
+        'announced_programs': announced_programs,
+        'total_teams': Team.objects.count(),
+        'total_contestants': Contestant.objects.count(),
+    })
+
+
 # =================== Group Marks & Scoring Views ===================
 
 def create_group_participation(request):
