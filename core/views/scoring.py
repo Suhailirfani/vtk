@@ -1212,7 +1212,7 @@ def get_top_5_balancing_announcement_suggestions():
                     pts = calculate_points(p.rank, p.grade, is_group=False, members_count=1)[2]
                     simulated_gains[p.contestant.team_id] = simulated_gains.get(p.contestant.team_id, 0) + pts
 
-        simulated_scores = {tid: public_team_scores[tid] + simulated_gains[tid] for tid in teams}
+        simulated_scores = {t.id: public_team_scores[t.id] + simulated_gains[t.id] for t in teams}
         sorted_scores = sorted(simulated_scores.values(), reverse=True)
         
         if len(sorted_scores) >= 2:
