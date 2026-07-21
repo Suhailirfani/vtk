@@ -74,7 +74,77 @@
         </div>
     </div>
 
-    {% if formset.forms %}
+    {% if selected_program_obj and selected_program_obj.is_group %}
+        <!-- Group Program Marks Entry Form Table -->
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-users me-2"></i>Group Program: {{ selected_program_obj.name }} (Required Members: {{ selected_program_obj.members_count|default:"1" }})</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-4">
+                            <thead class="table-light border-bottom">
+                                <tr>
+                                    <th class="fw-bold" style="width: 50px;">#</th>
+                                    <th class="fw-bold">Group Name</th>
+                                    <th class="fw-bold">Team</th>
+                                    <th class="fw-bold">Group Members</th>
+                                    <th class="fw-bold text-center" style="width: 120px;">Code Letter</th>
+                                    <th class="fw-bold text-center" style="width: 140px;">Marks (0-100)</th>
+                                    <th class="fw-bold text-end" style="width: 120px;">Grade / Rank</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in group_participations %}
+                                    <tr>
+                                        <td class="text-muted">{{ forloop.counter }}</td>
+                                        <td class="fw-bold text-dark">{{ group.group_name|default:group.team.name }}</td>
+                                        <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ group.team.name|upper }}</span></td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for contestant in group.contestants.all %}
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1">
+                                                        #{{ contestant.chest_no }} {{ contestant.name }}
+                                                    </span>
+                                                {% empty %}
+                                                    <span class="text-muted small">No members assigned</span>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="text" name="code_letter_{{ group.id }}" value="{{ group.code_letter|default:'' }}" class="form-control form-control-sm text-center mx-auto" style="max-width: 80px;" placeholder="Code">
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" name="marks_{{ group.id }}" value="{{ group.marks|default:'' }}" min="0" max="100" class="form-control form-control-sm text-center mx-auto" style="max-width: 100px;" placeholder="Marks">
+                                        </td>
+                                        <td class="text-end">
+                                            {% if group.marks is not None %}
+                                                <span class="badge bg-success px-2 py-1">Grade {{ group.grade|default:"-" }}</span>
+                                                {% if group.rank %}
+                                                    <span class="badge bg-warning text-dark px-2 py-1">Rank {{ group.rank }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted small"><i class="far fa-clock me-1"></i>Pending</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4 text-muted">No group entries registered for this program yet.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if group_participations %}
+                        <button type="submit" class="btn btn-success px-4 py-2 fw-bold"><i class="fas fa-save me-2"></i>Save Group Marks</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    {% elif formset.forms %}
         <!-- Marks Entry Form Table -->
         <div class="card shadow border-0 rounded-3">
             <div class="card-body p-4">
@@ -147,7 +217,7 @@
         <div class="card shadow border-0 rounded-3">
             <div class="card-body py-5 text-center">
                 <div class="text-muted fs-1 mb-2"><i class="fas fa-exclamation-triangle"></i></div>
-                <p class="text-muted mb-0">No participants found for this program in the selected category.</p>
+                <p class="text-muted mb-0">No participants or group entries found for this program in the selected category.</p>
             </div>
         </div>
     {% endif %}

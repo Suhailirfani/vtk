@@ -38,8 +38,8 @@
             <select name="program_id" id="program_id" required>
                 <option value="">-- Select Program --</option>
                 {% for program in programs %}
-                    <option value="{{ program.id }}" data-min="{{ program.min_participants }}" data-max="{{ program.max_participants }}">
-                        {{ program.name }} ({{ program.min_participants }}-{{ program.max_participants }} participants)
+                    <option value="{{ program.id }}" data-count="{{ program.members_count|default:'1' }}">
+                        {{ program.name }} ({{ program.members_count|default:"1" }} Members Required)
                     </option>
                 {% endfor %}
             </select>
@@ -71,7 +71,7 @@
         
         <div class="form-group">
             <label for="group_name">Group Name (Optional):</label>
-            <input type="text" name="group_name" id="group_name" placeholder="e.g., Team Alpha Singers">
+            <input type="text" name="group_name" id="group_name" placeholder="e.g., Moulid Team 1 or Team Alpha">
         </div>
         
         <button type="submit">Create Group</button>
@@ -98,12 +98,8 @@
         // Validate participant count based on program selection
         document.getElementById('program_id').addEventListener('change', function() {
             const option = this.options[this.selectedIndex];
-            const min = parseInt(option.dataset.min) || 1;
-            const max = parseInt(option.dataset.max) || 1;
-            
-            // Update form validation
-            window.minParticipants = min;
-            window.maxParticipants = max;
+            const count = parseInt(option.dataset.count) || 1;
+            window.requiredCount = count;
         });
         
         // Validate form submission
@@ -111,12 +107,10 @@
             const checkedBoxes = document.querySelectorAll('input[name="contestants"]:checked');
             const count = checkedBoxes.length;
             
-            if (window.minParticipants && window.maxParticipants) {
-                if (count < window.minParticipants || count > window.maxParticipants) {
-                    e.preventDefault();
-                    alert(`Please select between ${window.minParticipants} and ${window.maxParticipants} contestants.`);
-                    return;
-                }
+            if (window.requiredCount && count !== window.requiredCount) {
+                e.preventDefault();
+                alert(`Please select exactly ${window.requiredCount} contestants for this group program.`);
+                return;
             }
             
             // Check if all contestants are from same team

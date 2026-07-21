@@ -790,16 +790,40 @@ def assign_group_program(request):
     if request.method == 'POST':
         program_id = request.POST.get('program')
         participant_ids = request.POST.getlist('participants')
-
-        if len(participant_ids) > 5:
-            messages.error(request, "You can select a maximum of 5 participants.")
-            return redirect('assign_group_program')
+        group_name = request.POST.get('group_name', '').strip()
 
         program = get_object_or_404(Program, id=program_id)
-        group_participation = GroupParticipation.objects.create(program=program)
-        group_participation.contestants.set(participant_ids) 
+        required_cnt = program.members_count or 1
 
-        messages.success(request, "Participants assigned successfully.")
+        if len(participant_ids) != required_cnt:
+            messages.error(request, f"Please select exactly {required_cnt} participants for {program.name}.")
+            return redirect('assign_group_program')
+
+        contestants = Contestant.objects.filter(id__in=participant_ids)
+        teams = set(c.team for c in contestants if c.team)
+
+        if not teams:
+            messages.error(request, "Participants must belong to a team.")
+            return redirect('assign_group_program')
+
+        if len(teams) > 1:
+            messages.error(request, "All group participants must belong to the same team.")
+            return redirect('assign_group_program')
+
+        team = list(teams)[0]
+        existing_cnt = GroupParticipation.objects.filter(program=program, team=team).count()
+
+        if not group_name:
+            group_name = f"{team.name} - Group {existing_cnt + 1}"
+
+        group_participation = GroupParticipation.objects.create(
+            program=program,
+            team=team,
+            group_name=group_name
+        )
+        group_participation.contestants.set(contestants) 
+
+        messages.success(request, f"Group '{group_name}' assigned successfully with {len(contestants)} members.")
         return redirect('assign_group_program')
 
     return render(request, 'assign_group_program.html', {'categories': categories})
@@ -809,7 +833,7 @@ def assign_group_program(request):
 def get_group_programs(request):
     category_id = request.POST.get('category_id')
     programs = Program.objects.filter(category_id=category_id, is_group=True)
-    program_list = [{"id": p.id, "name": p.name} for p in programs]
+    program_list = [{"id": p.id, "name": p.name, "members_count": p.members_count or 1} for p in programs]
     return JsonResponse({"programs": program_list})
 
 @login_required

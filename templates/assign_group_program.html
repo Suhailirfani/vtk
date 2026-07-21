@@ -1,77 +1,54 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>Assign Group Program</h3>
+<div class="container py-4">
+  <div class="card shadow-sm border-0 rounded-3 max-w-lg mx-auto" style="max-width: 600px;">
+    <div class="card-header bg-primary text-white py-3">
+      <h4 class="mb-0 fw-bold"><i class="fas fa-users-cog me-2"></i>Assign Group Program</h4>
+    </div>
+    <div class="card-body p-4">
+      <form method="post" id="assignForm">
+        {% csrf_token %}
 
-<form method="post" id="assignForm">
-  {% csrf_token %}
+        <div class="mb-3">
+          <label for="category" class="form-label fw-bold">Select Category:</label>
+          <select id="category" name="category" class="form-select" required>
+            <option value="">-- Select Category --</option>
+            {% for cat in categories %}
+              <option value="{{ cat.id }}">{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-  <label>Category:</label>
-  <select id="category" name="category" required>
-    <option value="">-- Select Category --</option>
-    {% for cat in categories %}
-      <option value="{{ cat.id }}">{{ cat.name }}</option>
-    {% endfor %}
-  </select>
+        <div class="mb-3">
+          <label for="program" class="form-label fw-bold">Select Group Program:</label>
+          <select id="program" name="program" class="form-select" required>
+            <option value="">-- Select Program --</option>
+          </select>
+        </div>
 
-  <br><br>
+        <div class="mb-3">
+          <label for="group_name" class="form-label fw-bold">Group Name (Optional):</label>
+          <input type="text" id="group_name" name="group_name" class="form-control" placeholder="e.g., Moulid Team 1 or Group A">
+        </div>
 
-  <label>Program:</label>
-  <select id="program" name="program" required>
-    <option value="">-- Select Program --</option>
-  </select>
+        <div class="mb-3">
+          <label class="form-label fw-bold" id="participantsLabel">Select Group Members:</label>
+          <div id="participants" class="border rounded p-3 bg-light" style="max-height: 250px; overflow-y: auto;">
+            <p class="text-muted mb-0 small">Select category to load contestants.</p>
+          </div>
+        </div>
 
-  <br><br>
-
-  <label>Participants (max 5):</label><br>
-  <div id="participants"></div>
-
-  <br>
-  <button type="submit">Assign</button>
-</form>
-
-<style>
-  form {
-    background: #f9f9f9;
-    padding: 20px;
-    border-radius: 10px;
-    max-width: 500px;
-    margin: auto;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-  }
-  label {
-    font-weight: bold;
-    display: block;
-    margin-top: 10px;
-  }
-  select, button {
-    margin-top: 5px;
-    padding: 8px;
-    width: 100%;
-  }
-  #participants {
-    margin-top: 10px;
-    padding: 10px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    max-height: 150px;
-    overflow-y: auto;
-  }
-  button {
-    background: #034067;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  button:hover {
-    background: #0466a3;
-  }
-</style>
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold"><i class="fas fa-plus-circle me-1"></i>Create & Assign Group</button>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function(){
+  var requiredMembers = 1;
+
   $('#category').change(function(){
     var categoryId = $(this).val();
     if(categoryId){
@@ -82,7 +59,7 @@ $(document).ready(function(){
       }, function(response){
         $('#program').empty().append('<option value="">-- Select Program --</option>');
         response.programs.forEach(function(prog){
-          $('#program').append('<option value="'+prog.id+'">'+prog.name+'</option>');
+          $('#program').append('<option value="'+prog.id+'" data-members="'+prog.members_count+'">'+prog.name+' ('+prog.members_count+' members required)</option>');
         });
       });
 
@@ -92,19 +69,32 @@ $(document).ready(function(){
         'category_id': categoryId
       }, function(response){
         $('#participants').empty();
+        if (response.contestants.length === 0) {
+          $('#participants').append('<p class="text-muted mb-0 small">No contestants found in this category.</p>');
+        }
         response.contestants.forEach(function(cont){
           $('#participants').append(
-            '<input type="checkbox" name="participants" value="'+cont.id+'" class="participantBox"> '+cont.name+'<br>'
+            '<div class="form-check mb-1">'+
+              '<input type="checkbox" name="participants" value="'+cont.id+'" class="form-check-input participantBox" id="c_'+cont.id+'">'+
+              '<label class="form-check-label" for="c_'+cont.id+'">#'+cont.id+' '+cont.name+'</label>'+
+            '</div>'
           );
         });
       });
     }
   });
 
-  // Limit 5 participants
+  $('#program').change(function(){
+    var selectedOpt = $(this).find(':selected');
+    requiredMembers = parseInt(selectedOpt.data('members')) || 1;
+    $('#participantsLabel').html('Select Group Members <span class="badge bg-primary text-white ms-1">Exactly '+requiredMembers+' required</span>:');
+  });
+
+  // Limit selection count
   $(document).on('change', '.participantBox', function(){
-    if($('.participantBox:checked').length > 5){
-      alert("Maximum 5 participants can be selected.");
+    var checkedCount = $('.participantBox:checked').length;
+    if(checkedCount > requiredMembers){
+      alert("You can select at most " + requiredMembers + " members for this program.");
       this.checked = false;
     }
   });
@@ -112,11 +102,13 @@ $(document).ready(function(){
   // Validate before submit
   $('#assignForm').submit(function(e){
     if ($('#program').val() === "") {
-      alert("Please select a program.");
+      alert("Please select a group program.");
       e.preventDefault();
+      return;
     }
-    if ($('.participantBox:checked').length === 0) {
-      alert("Please select at least one participant.");
+    var checkedCount = $('.participantBox:checked').length;
+    if (checkedCount !== requiredMembers) {
+      alert("Please select exactly " + requiredMembers + " participants for this group.");
       e.preventDefault();
     }
   });

@@ -121,6 +121,7 @@ class GroupParticipation(models.Model):
     contestants = models.ManyToManyField(Contestant)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)  # All contestants should be from same team
     group_name = models.CharField(max_length=200, blank=True)  # Optional group name
+    code_letter = models.CharField(max_length=5, null=True, blank=True)
     marks = models.IntegerField(null=True, blank=True)
     rank = models.PositiveIntegerField(null=True, blank=True)
     grade = models.CharField(max_length=1, null=True, blank=True)

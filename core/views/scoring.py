@@ -292,7 +292,7 @@ def leaderboard(request):
 
 @login_required
 def add_marks(request):
-    """Add or edit marks for participants"""
+    """Add or edit marks for participants or group entries"""
     if request.user.role != 'admin':
         messages.error(request, 'You do not have permission to access this page.')
         return redirect('dashboard_team')
@@ -303,14 +303,22 @@ def add_marks(request):
     categories = Category.objects.all().order_by('name')
     programs = Program.objects.none()
     participations = Participation.objects.none()
+    group_participations = GroupParticipation.objects.none()
+    selected_program_obj = None
 
     if category_id:
         programs = Program.objects.filter(category_id=category_id).order_by('name')
 
     if program_id:
-        participations = Participation.objects.filter(
-            program_id=program_id
-        ).select_related('contestant', 'contestant__team', 'program').order_by('contestant__chest_no')
+        selected_program_obj = Program.objects.filter(id=program_id).first()
+        if selected_program_obj and selected_program_obj.is_group:
+            group_participations = GroupParticipation.objects.filter(
+                program_id=program_id
+            ).select_related('team', 'program').prefetch_related('contestants')
+        else:
+            participations = Participation.objects.filter(
+                program_id=program_id
+            ).select_related('contestant', 'contestant__team', 'program').order_by('contestant__chest_no')
 
     ParticipationFormSet = modelformset_factory(
         Participation,
@@ -320,25 +328,48 @@ def add_marks(request):
     )
 
     if request.method == 'POST':
-        formset = ParticipationFormSet(request.POST, queryset=participations)
-        if formset.is_valid():
+        if selected_program_obj and selected_program_obj.is_group:
             with transaction.atomic():
                 saved_count = 0
-                for form in formset:
-                    instance = form.save(commit=False)
-                    if instance.marks is not None:
-                        if not instance.marks_added_at:
-                            instance.marks_added_at = timezone.now()
-                        instance.save()
-                        saved_count += 1
+                for group in group_participations:
+                    marks_val = request.POST.get(f'marks_{group.id}')
+                    code_val = request.POST.get(f'code_letter_{group.id}', '').strip()
 
-                if program_id:
-                    program = Program.objects.get(id=program_id)
-                    calculate_and_award_points_for_program(program)
+                    if code_val != (group.code_letter or ''):
+                        group.code_letter = code_val
+                        group.save()
 
-                messages.success(request, f'Successfully saved marks for {saved_count} participants!')
+                    if marks_val is not None and marks_val != '':
+                        try:
+                            group.marks = int(marks_val)
+                            group.save()
+                            saved_count += 1
+                        except ValueError:
+                            pass
 
+                calculate_group_grades_and_points()
+                messages.success(request, f'Successfully saved marks for {saved_count} group entries!')
             return redirect(f"{request.path}?category={category_id}&program={program_id}")
+        else:
+            formset = ParticipationFormSet(request.POST, queryset=participations)
+            if formset.is_valid():
+                with transaction.atomic():
+                    saved_count = 0
+                    for form in formset:
+                        instance = form.save(commit=False)
+                        if instance.marks is not None:
+                            if not instance.marks_added_at:
+                                instance.marks_added_at = timezone.now()
+                            instance.save()
+                            saved_count += 1
+
+                    if program_id:
+                        program = Program.objects.get(id=program_id)
+                        calculate_and_award_points_for_program(program)
+
+                    messages.success(request, f'Successfully saved marks for {saved_count} participants!')
+
+                return redirect(f"{request.path}?category={category_id}&program={program_id}")
     else:
         formset = ParticipationFormSet(queryset=participations)
 
@@ -348,7 +379,9 @@ def add_marks(request):
         'formset': formset,
         'selected_category': category_id,
         'selected_program': program_id,
+        'selected_program_obj': selected_program_obj,
         'participations': participations,
+        'group_participations': group_participations,
     })
 
 @login_required
@@ -684,32 +717,34 @@ def create_group_participation(request):
         try:
             with transaction.atomic():
                 program = get_object_or_404(Program, id=program_id, is_group=True)
+                required_count = program.members_count or 1
                 
                 # Validate contestant count
-                if len(contestant_ids) < program.min_participants or len(contestant_ids) > program.max_participants:
-                    messages.error(request, 
-                        f"Number of participants must be between {program.min_participants} "
-                        f"and {program.max_participants}")
+                if len(contestant_ids) != required_count:
+                    messages.error(request, f"Exact participant count required for {program.name} is {required_count}. You selected {len(contestant_ids)}.")
                     return redirect('group_participation_form')
                 
                 # Get contestants and validate they're from the same team
                 contestants = Contestant.objects.filter(id__in=contestant_ids)
-                teams = set(c.team for c in contestants)
+                teams = set(c.team for c in contestants if c.team)
                 
+                if not teams:
+                    messages.error(request, "Selected contestants must belong to a team.")
+                    return redirect('group_participation_form')
+
                 if len(teams) > 1:
-                    messages.error(request, "All contestants must be from the same team")
+                    messages.error(request, "All contestants in a group must be from the same team.")
                     return redirect('group_participation_form')
                 
                 team = list(teams)[0]
                 
-                # Check if this team already has a group for this program
-                existing_group = GroupParticipation.objects.filter(
+                # Count existing groups for this team in this program
+                existing_count = GroupParticipation.objects.filter(
                     program=program, team=team
-                ).first()
+                ).count()
                 
-                if existing_group:
-                    messages.error(request, f"Team {team.name} already has a group for {program.name}")
-                    return redirect('group_participation_form')
+                if not group_name:
+                    group_name = f"{team.name} - Group {existing_count + 1}"
                 
                 # Create group participation
                 group_participation = GroupParticipation.objects.create(
@@ -719,7 +754,7 @@ def create_group_participation(request):
                 )
                 group_participation.contestants.set(contestants)
                 
-                messages.success(request, f"Group created successfully for {program.name}")
+                messages.success(request, f"Group '{group_name}' created successfully for {program.name} ({len(contestants)} members)!")
                 return redirect('group_participation_list')
                 
         except Exception as e:
