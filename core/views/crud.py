@@ -127,41 +127,53 @@ def add_program(request):
 
             try:
                 df = pd.read_excel(excel_file)
-                for _, row in df.iterrows():
-                    name = str(row.get("name", "") or row.get("Program Name", "")).strip()
-                    category_name = str(row.get("category", "") or row.get("Category", "")).strip()
 
-                    if name and category_name and name.lower() != 'nan' and category_name.lower() != 'nan':
+                def _get_str(row_dict, keys):
+                    for k in keys:
+                        val = row_dict.get(k)
+                        if pd.notna(val):
+                            s_val = str(val).strip()
+                            if s_val and s_val.lower() != 'nan':
+                                return s_val
+                    return ""
+
+                def _get_int(row_dict, keys, default=1):
+                    for k in keys:
+                        val = row_dict.get(k)
+                        if pd.notna(val):
+                            try:
+                                return int(float(val))
+                            except (ValueError, TypeError):
+                                pass
+                    return default
+
+                for _, row in df.iterrows():
+                    row_dict = row.to_dict()
+                    name = _get_str(row_dict, ["name", "Name", "program_name", "Program Name", "program", "Program"])
+                    category_name = _get_str(row_dict, ["category", "Category", "category_name", "Category Name"])
+
+                    if name and category_name:
                         try:
                             category = Category.objects.get(name__iexact=category_name)
                             
-                            members_cnt = row.get("members_count") or row.get("Members") or 1
-                            try:
-                                members_cnt = int(members_cnt)
-                            except (ValueError, TypeError):
-                                members_cnt = 1
+                            members_cnt = _get_int(row_dict, [
+                                "members_count", "Members Count", "members", "Members",
+                                "number_of_members", "Number of Members", "no_of_members",
+                                "No of Members", "No. of Members", "members_cnt", "num_members"
+                            ], default=1)
 
-                            ptype = str(row.get("type", "") or row.get("program_type", "") or row.get("Venue Type", "")).strip().upper()
+                            ptype = _get_str(row_dict, ["type", "Type", "program_type", "Program Type", "venue_type", "Venue Type"]).upper()
                             ptype_val = "OFF_STAGE" if "OFF" in ptype else "STAGE"
 
-                            pmode = str(row.get("mode", "") or row.get("presentation_mode", "") or row.get("Mode", "")).strip().upper()
+                            pmode = _get_str(row_dict, ["mode", "Mode", "presentation_mode", "Presentation Mode", "duration_mode", "Duration Mode"]).upper()
                             pmode_val = "SIMULTANEOUS" if any(x in pmode for x in ["SIMULTANEOUS", "ALL", "WRITTEN", "ESSAY"]) else "SEQUENTIAL"
 
-                            dur = row.get("duration") or row.get("duration_per_participant") or row.get("Duration") or 5
-                            try:
-                                dur = int(dur)
-                            except (ValueError, TypeError):
-                                dur = 5
+                            dur = _get_int(row_dict, ["duration", "Duration", "duration_per_participant", "Duration (Mins)", "duration_mins"], default=5)
+                            buf = _get_int(row_dict, ["buffer", "Buffer", "buffer_margin_minutes", "Buffer (Mins)", "buffer_mins"], default=0)
 
-                            buf = row.get("buffer") or row.get("buffer_margin_minutes") or row.get("Buffer") or 0
-                            try:
-                                buf = int(buf)
-                            except (ValueError, TypeError):
-                                buf = 0
-
-                            pref_stage_name = str(row.get("stage") or row.get("preferred_stage") or row.get("Stage Priority") or "").strip()
+                            pref_stage_name = _get_str(row_dict, ["stage", "Stage", "preferred_stage", "Preferred Stage", "stage_priority", "Stage Priority"])
                             pref_stage = None
-                            if pref_stage_name and pref_stage_name.lower() != 'nan':
+                            if pref_stage_name:
                                 pref_stage = Stage.objects.filter(name__iexact=pref_stage_name).first()
 
                             Program.objects.create(
@@ -222,7 +234,7 @@ def add_program(request):
 
 @login_required
 def edit_program(request, program_id):
-    if request.user.role != 'admin':
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('dashboard_team')
 
     program = get_object_or_404(Program, id=program_id)
@@ -230,7 +242,7 @@ def edit_program(request, program_id):
     stages = Stage.objects.all()
 
     if request.method == 'POST':
-        name = request.POST.get('name').strip()
+        name = request.POST.get('name', '').strip()
         category_id = request.POST.get('category')
         members_count = request.POST.get('members_count', '1')
         program_type = request.POST.get('program_type', 'STAGE')
@@ -241,7 +253,7 @@ def edit_program(request, program_id):
 
         if name and category_id:
             category = get_object_or_404(Category, id=category_id)
-            cnt = int(members_count) if members_count and members_count.isdigit() else 1
+            cnt = int(members_count) if members_count and str(members_count).isdigit() else 1
 
             program.name = name
             program.category = category
@@ -937,6 +949,18 @@ def download_program_excel_template(request):
             'Available Stages / Venues': stage_names
         })
         ref_df.to_excel(writer, index=False, sheet_name='Reference Guide')
+
+        field_guide_df = pd.DataFrame([
+            {'Column Name': 'name', 'Required': 'Yes', 'Description': 'Program Title / Name (e.g. Speech, Group Song)'},
+            {'Column Name': 'category', 'Required': 'Yes', 'Description': 'Must match an existing Category name exactly (e.g. SENIOR)'},
+            {'Column Name': 'members_count', 'Required': 'No (Default: 1)', 'Description': 'Number of Members. 1 for Individual, >1 for Group programs'},
+            {'Column Name': 'type', 'Required': 'No (Default: Stage)', 'Description': 'Venue Type: "Stage" or "Off-Stage"'},
+            {'Column Name': 'mode', 'Required': 'No (Default: Sequential)', 'Description': 'Duration Mode: "Sequential" (Per Person) or "Simultaneous" (All-at-Once)'},
+            {'Column Name': 'duration', 'Required': 'No (Default: 5)', 'Description': 'Duration in minutes per participant (or total if simultaneous)'},
+            {'Column Name': 'buffer', 'Required': 'No (Default: 0)', 'Description': 'Buffer margin in minutes'},
+            {'Column Name': 'stage', 'Required': 'No', 'Description': 'Preferred Stage name (e.g. Stage 1)'},
+        ])
+        field_guide_df.to_excel(writer, index=False, sheet_name='Field Guidelines')
 
     return response
 

@@ -26,6 +26,11 @@
                             </select>
                         </div>
 
+                        <div class="mb-4">
+                            <label for="members_count" class="form-label fw-bold text-secondary">Number of Members (if Group)</label>
+                            <input type="number" name="members_count" id="members_count" value="{{ program.members_count|default:'1' }}" class="form-control form-control-lg border-secondary-subtle" min="1" placeholder="e.g., 2 or 4 (Defaults to 1)">
+                        </div>
+
                         <div class="row g-3 mb-4">
                             <div class="col-6">
                                 <label for="program_type" class="form-label fw-bold text-secondary">Venue Type</label>
