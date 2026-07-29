@@ -11,7 +11,8 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
-from ..models import Program, Category, Team, Contestant, Participation
+from django.db.models import Q
+from ..models import Program, Category, Team, Contestant, Participation, GroupParticipation
 from .scoring import calculate_points, get_members_count_for_program
 
 @login_required
