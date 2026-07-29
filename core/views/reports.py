@@ -501,36 +501,59 @@ def results_pdf(request):
     view_mode = request.GET.get('view', 'announced') if is_admin else 'announced'
     announced_only = (view_mode == 'announced')
 
-    programs = Program.objects.filter(participation__marks__isnull=False).distinct()
+    programs = Program.objects.filter(
+        Q(participation__marks__isnull=False) | Q(groupparticipation__marks__isnull=False)
+    ).distinct()
     if announced_only:
         programs = programs.filter(is_announced=True)
 
     program_results = []
     for program in programs:
-        results = (
-            Participation.objects
-            .filter(program=program, marks__isnull=False)
-            .select_related('contestant', 'contestant__team')
-            .order_by('rank')
-        )
-
         members_count = get_members_count_for_program(program) if program.is_group else 1
 
-        for p in results:
-            if p.points_awarded and p.marks and p.marks > 0:
-                rank_pts, grade_pts, total_pts = calculate_points(
-                    p.rank,
-                    p.grade,
-                    program.is_group,
-                    members_count
+        if program.is_group:
+            results = list(
+                GroupParticipation.objects
+                .filter(program=program, marks__isnull=False)
+                .select_related('team', 'captain')
+                .prefetch_related('contestants')
+                .order_by('rank')
+            )
+            if not results:
+                results = list(
+                    Participation.objects
+                    .filter(program=program, marks__isnull=False)
+                    .select_related('contestant', 'contestant__team')
+                    .order_by('rank')
                 )
-                p.total_points = total_pts
-            else:
-                p.total_points = 0
+            for g in results:
+                if getattr(g, 'points_awarded', False) and g.marks and g.marks > 0:
+                    _, _, total_pts = calculate_points(
+                        g.rank, g.grade, is_group=True, members_count=members_count
+                    )
+                    g.total_points = total_pts
+                else:
+                    g.total_points = 0
+        else:
+            results = list(
+                Participation.objects
+                .filter(program=program, marks__isnull=False)
+                .select_related('contestant', 'contestant__team')
+                .order_by('rank')
+            )
+            for p in results:
+                if p.points_awarded and p.marks and p.marks > 0:
+                    _, _, total_pts = calculate_points(
+                        p.rank, p.grade, is_group=False, members_count=1
+                    )
+                    p.total_points = total_pts
+                else:
+                    p.total_points = 0
 
         program_results.append({
             'program': program,
             'results': results,
+            'is_group': program.is_group,
         })
 
     context = {'program_results': program_results}
@@ -544,13 +567,6 @@ def program_result_pdf(request, program_id):
     if not program.is_announced and not is_admin:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Results for this program are not yet announced.")
-
-    results = (
-        Participation.objects
-        .filter(program=program, marks__isnull=False)
-        .select_related('contestant', 'contestant__team')
-        .order_by('rank')
-    )
 
     members_count = get_members_count_for_program(program) if program.is_group else 1
 
@@ -570,27 +586,87 @@ def program_result_pdf(request, program_id):
     elements.append(Paragraph(f"<font size=14 color='#333333'><b>RESULTS: {program.name.upper()} - {program.category.name.upper()}</b></font>", title_style))
     elements.append(Spacer(1, 12))
 
-    data = [["Rank", "Chest No", "Code Letter", "Name", "Team", "Grade", "Points"]]
-
-    for r in results:
-        rank_pts, grade_pts, total_pts = calculate_points(
-            r.rank,
-            r.grade,
-            program.is_group,
-            members_count
+    if program.is_group:
+        group_results = (
+            GroupParticipation.objects
+            .filter(program=program, marks__isnull=False)
+            .select_related('team', 'captain')
+            .prefetch_related('contestants')
+            .order_by('rank')
         )
+        if group_results.exists():
+            data = [["Rank", "Code", "Group Captain / Members", "Team", "Grade", "Points"]]
+            for g in group_results:
+                rank_pts, grade_pts, total_pts = calculate_points(
+                    g.rank,
+                    g.grade,
+                    is_group=True,
+                    members_count=members_count
+                )
+                cap_str = g.captain_display
+                mem_str = g.members_display
+                disp_str = f"<b>{cap_str}</b><br/><font size=8 color='#555555'>{mem_str}</font>"
+                data.append([
+                    Paragraph(str(g.rank or "-"), normal),
+                    Paragraph(str(g.code_letter or "-"), normal),
+                    Paragraph(disp_str, normal),
+                    Paragraph(g.team.name.upper() if g.team else "-", normal),
+                    Paragraph(str(g.grade or "-"), normal),
+                    Paragraph(f"{total_pts:.2f}", normal)
+                ])
+            col_widths = [40, 50, 200, 110, 50, 50]
+        else:
+            ind_results = (
+                Participation.objects
+                .filter(program=program, marks__isnull=False)
+                .select_related('contestant', 'contestant__team')
+                .order_by('rank')
+            )
+            data = [["Rank", "Chest No", "Code Letter", "Name", "Team", "Grade", "Points"]]
+            for r in ind_results:
+                rank_pts, grade_pts, total_pts = calculate_points(
+                    r.rank,
+                    r.grade,
+                    program.is_group,
+                    members_count
+                )
+                data.append([
+                    Paragraph(str(r.rank or "-"), normal),
+                    Paragraph(str(r.contestant.chest_no or "-"), normal),
+                    Paragraph(str(r.code_letter or "-"), normal),
+                    Paragraph(r.contestant.name.upper(), normal),
+                    Paragraph(r.contestant.team.name.upper() if r.contestant.team else "-", normal),
+                    Paragraph(str(r.grade or "-"), normal),
+                    Paragraph(f"{total_pts:.2f}", normal)
+                ])
+            col_widths = [40, 50, 60, 140, 120, 50, 60]
+    else:
+        results = (
+            Participation.objects
+            .filter(program=program, marks__isnull=False)
+            .select_related('contestant', 'contestant__team')
+            .order_by('rank')
+        )
+        data = [["Rank", "Chest No", "Code Letter", "Name", "Team", "Grade", "Points"]]
+        for r in results:
+            rank_pts, grade_pts, total_pts = calculate_points(
+                r.rank,
+                r.grade,
+                False,
+                1
+            )
+            data.append([
+                Paragraph(str(r.rank or "-"), normal),
+                Paragraph(str(r.contestant.chest_no or "-"), normal),
+                Paragraph(str(r.code_letter or "-"), normal),
+                Paragraph(r.contestant.name.upper(), normal),
+                Paragraph(r.contestant.team.name.upper() if r.contestant.team else "-", normal),
+                Paragraph(str(r.grade or "-"), normal),
+                Paragraph(f"{total_pts:.2f}", normal)
+            ])
+        col_widths = [40, 50, 60, 140, 120, 50, 60]
 
-        data.append([
-            Paragraph(str(r.rank or "-"), normal),
-            Paragraph(str(r.contestant.chest_no or "-"), normal),
-            Paragraph(str(r.code_letter or "-"), normal),
-            Paragraph(r.contestant.name.upper(), normal),
-            Paragraph(r.contestant.team.name.upper() if r.contestant.team else "-", normal),
-            Paragraph(str(r.grade or "-"), normal),
-            Paragraph(f"{total_pts:.2f}", normal)
-        ])
-
-    table = Table(data, colWidths=[40, 50, 60, 140, 120, 50, 60])
+    table = Table(data, colWidths=col_widths)
 
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),

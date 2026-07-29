@@ -18,8 +18,8 @@
             <thead>
                 <tr>
                     <th>Rank</th>
-                    <th>Chest No</th>
-                    <th>Contestant</th>
+                    <th>{% if pr.is_group %}Team / Group{% else %}Chest No{% endif %}</th>
+                    <th>{% if pr.is_group %}Group Captain & Members{% else %}Contestant Name{% endif %}</th>
                     <th>Category</th>
                     <th>Grade</th>
                     <th>Points</th>
@@ -28,12 +28,16 @@
             <tbody>
                 {% for result in pr.results %}
                     <tr>
-                        <td>{{ result.rank }}</td>
-                        <td>{{ result.contestant.chest_no }}</td>
-                        <td>{{ result.contestant.name }}</td>
-                        <td>{{ result.contestant.category.name }}</td>
-                        <td>{{ result.grade }}</td>
-                        <td>{{ result.total_points }}</td>
+                        <td>{{ result.rank|default:"-" }}</td>
+                        <td>{% if pr.is_group %}{{ result.team.name|default:"-" }}{% else %}{{ result.contestant.chest_no|default:"-" }}{% endif %}</td>
+                        <td>{% if pr.is_group %}⭐ {{ result.captain_display }} ({{ result.members_display }}){% else %}{{ result.contestant.name }}{% endif %}</td>
+                        <td>{{ pr.program.category.name }}</td>
+                        <td>{{ result.grade|default:"-" }}</td>
+                        <td>{{ result.total_points|default:"0" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">No results for this program.</td>
                     </tr>
                 {% endfor %}
             </tbody>
