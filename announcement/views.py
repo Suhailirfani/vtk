@@ -117,35 +117,55 @@ def public_program_result(request, program_id):
         messages.warning(request, "Results for this program are not yet announced.")
         return redirect('public_results_home')
     
-    # Get results
-    results = Participation.objects.filter(
-        program=program,
-        marks__isnull=False
-    ).exclude(marks=0).select_related(
-        'contestant', 'contestant__team'
-    ).order_by('rank')
-    
-    # Calculate display points
     members_count = get_members_count_for_program(program) if program.is_group else 1
-    
-    for p in results:
-        if p.marks and p.marks > 0:
-            rank_pts, grade_pts, total_pts = calculate_points(
-                p.rank, p.grade, program.is_group, members_count
-            )
-            p.rank_points = rank_pts
-            p.grade_points = grade_pts
-            p.total_points = total_pts
-        else:
-            p.rank_points = 0
-            p.grade_points = 0
-            p.total_points = 0
-    
+
+    if program.is_group:
+        from core.models import GroupParticipation
+        results = GroupParticipation.objects.filter(
+            program=program,
+            marks__isnull=False
+        ).exclude(marks=0).select_related(
+            'team', 'captain'
+        ).prefetch_related('contestants').order_by('rank')
+
+        for g in results:
+            if g.marks and g.marks > 0:
+                rank_pts, grade_pts, total_pts = calculate_points(
+                    g.rank, g.grade, is_group=True, members_count=members_count
+                )
+                g.rank_points = rank_pts
+                g.grade_points = grade_pts
+                g.total_points = total_pts
+            else:
+                g.rank_points = 0
+                g.grade_points = 0
+                g.total_points = 0
+    else:
+        results = Participation.objects.filter(
+            program=program,
+            marks__isnull=False
+        ).exclude(marks=0).select_related(
+            'contestant', 'contestant__team'
+        ).order_by('rank')
+
+        for p in results:
+            if p.marks and p.marks > 0:
+                rank_pts, grade_pts, total_pts = calculate_points(
+                    p.rank, p.grade, is_group=False, members_count=1
+                )
+                p.rank_points = rank_pts
+                p.grade_points = grade_pts
+                p.total_points = total_pts
+            else:
+                p.rank_points = 0
+                p.grade_points = 0
+                p.total_points = 0
+
     # Separate winners and others
-    winners = results.filter(rank__in=[1, 2, 3])
-    others = results.exclude(rank__in=[1, 2, 3])
-    
-    return render(request, 'announcements/public_program_result.html', {
+    winners = [r for r in results if r.rank in [1, 2, 3]]
+    others = [r for r in results if r.rank not in [1, 2, 3]]
+
+    return render(request, 'announcement/public_program_result.html', {
         'program': program,
         'results': results,
         'winners': winners,

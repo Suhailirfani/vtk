@@ -506,21 +506,21 @@ def assign_programs(request):
                     team_id=team_id,
                     category__name__in=["APEX", "VERTEX", "CORTEX"]
                 )
-                programs = Program.objects.filter(category=selected_category)
+                programs = Program.objects.filter(category=selected_category, is_group=False)
 
             elif selected_category.name.upper() == "CATEGORY A":
                 contestants = Contestant.objects.filter(
                     team_id=team_id,
                     category__name__in=["APEX", "VERTEX"]
                 )
-                programs = Program.objects.filter(category=selected_category)
+                programs = Program.objects.filter(category=selected_category, is_group=False)
 
             else:
                 contestants = Contestant.objects.filter(
                     team_id=team_id,
                     category=selected_category
                 )
-                programs = Program.objects.filter(category=selected_category)
+                programs = Program.objects.filter(category=selected_category, is_group=False)
 
         except Category.DoesNotExist:
             pass
@@ -797,15 +797,14 @@ def add_group_program(request):
 
 @login_required
 def assign_group_program(request):
-    if not (request.user.is_superuser or request.user.role == 'admin'):
-        return redirect('dashboard_team')
-
+    is_team_user = request.user.role == 'team' and hasattr(request.user, 'team')
     categories = Category.objects.all()
 
     if request.method == 'POST':
         program_id = request.POST.get('program')
         participant_ids = request.POST.getlist('participants')
         group_name = request.POST.get('group_name', '').strip()
+        captain_id = request.POST.get('captain')
 
         program = get_object_or_404(Program, id=program_id)
         required_cnt = program.members_count or 1
@@ -814,7 +813,14 @@ def assign_group_program(request):
             messages.error(request, f"Please select exactly {required_cnt} participants for {program.name}.")
             return redirect('assign_group_program')
 
-        contestants = Contestant.objects.filter(id__in=participant_ids)
+        if is_team_user:
+            contestants = list(Contestant.objects.filter(id__in=participant_ids, team=request.user.team))
+            if len(contestants) != required_cnt:
+                messages.error(request, "All selected contestants must belong to your team.")
+                return redirect('assign_group_program')
+        else:
+            contestants = list(Contestant.objects.filter(id__in=participant_ids))
+
         teams = set(c.team for c in contestants if c.team)
 
         if not teams:
@@ -831,14 +837,22 @@ def assign_group_program(request):
         if not group_name:
             group_name = f"{team.name} - Group {existing_cnt + 1}"
 
+        captain_obj = None
+        if captain_id:
+            captain_obj = next((c for c in contestants if str(c.id) == str(captain_id)), None)
+        if not captain_obj and contestants:
+            captain_obj = contestants[0]
+
         group_participation = GroupParticipation.objects.create(
             program=program,
             team=team,
-            group_name=group_name
+            group_name=group_name,
+            captain=captain_obj
         )
         group_participation.contestants.set(contestants) 
 
-        messages.success(request, f"Group '{group_name}' assigned successfully with {len(contestants)} members.")
+        cap_title = f" (Captain: #{captain_obj.chest_no} {captain_obj.name})" if captain_obj else ""
+        messages.success(request, f"Group '{group_name}' assigned successfully with {len(contestants)} members{cap_title}.")
         return redirect('assign_group_program')
 
     return render(request, 'assign_group_program.html', {'categories': categories})
@@ -856,7 +870,9 @@ def get_group_programs(request):
 def get_participants_by_category(request):
     category_id = request.POST.get('category_id')
     contestants = Contestant.objects.filter(category_id=category_id)
-    contestant_list = [{"id": c.id, "name": c.name} for c in contestants]
+    if request.user.role == 'team' and hasattr(request.user, 'team'):
+        contestants = contestants.filter(team=request.user.team)
+    contestant_list = [{"id": c.id, "name": f"#{c.chest_no} {c.name} ({c.team.name if c.team else 'No Team'})"} for c in contestants.select_related('team')]
     return JsonResponse({"contestants": contestant_list})
 
 def chest_number(request):

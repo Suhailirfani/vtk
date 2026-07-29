@@ -1,50 +1,75 @@
 {% extends 'base.html' %}
 {% block content %}
-<form method="get" action="">
-    <label>Team</label>
-    <select name="team" class="form-select" onchange="this.form.submit()">
-        <option value="">-- Select Team --</option>
-        {% for team in teams %}
-            <option value="{{ team.id }}" {% if request.GET.team == team.id|stringformat:"s" %}selected{% endif %}>
-                {{ team.name }}
-            </option>
-        {% endfor %}
-    </select>
+<div class="container py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <h4 class="mb-0 text-primary fw-bold"><i class="fas fa-user-plus me-2"></i>Assign Individual Programs</h4>
+        <a href="{% url 'assign_group_program' %}" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold shadow-sm">
+            <i class="fas fa-users-cog me-1"></i>Assign Group Program
+        </a>
+    </div>
 
-    <label>Category</label>
-    <select name="category" class="form-select" onchange="this.form.submit()">
-        <option value="">-- Select Category --</option>
-        {% for cat in categories %}
-            <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>
-                {{ cat.name }}
-            </option>
-        {% endfor %}
-    </select>
-</form>
-
-{% if contestants %}
-<form method="post">
-    {% csrf_token %}
-
-    <label>Contestant</label>
-    <select name="contestant" class="form-select">
-        {% for contestant in contestants %}
-            <option value="{{ contestant.id }}">{{ contestant.name }}</option>
-        {% endfor %}
-    </select>
-
-    <h5>Programs</h5>
-    {% for prog in programs %}
-        <div>
-            <input type="checkbox" name="programs" value="{{ prog.id }}">
-            {{ prog.name }}
+    <form method="get" action="" class="card p-3 shadow-sm border-0 mb-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Team</label>
+                <select name="team" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Select Team --</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" {% if request.GET.team == team.id|stringformat:"s" %}selected{% endif %}>
+                            {{ team.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Category</label>
+                <select name="category" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Select Category --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-    {% empty %}
-        <p>No programs available.</p>
-    {% endfor %}
+    </form>
 
-    <button type="submit" class="btn btn-primary mt-3">Assign</button>
-</form>
-<a href="{% url 'assigned_programs' %}" class="btn btn-primary mt-3">Assigned Programs</a>
-{% endif %}
+    {% if contestants %}
+        <div class="card p-4 shadow-sm border-0">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Contestant</label>
+                    <select name="contestant" class="form-select">
+                        {% for contestant in contestants %}
+                            <option value="{{ contestant.id }}">#{{ contestant.chest_no }} {{ contestant.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <h5 class="fw-bold mt-4 mb-3 text-secondary">Individual Programs</h5>
+                <div class="row g-2 mb-4">
+                    {% for prog in programs %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="form-check border rounded p-2 bg-light">
+                                <input type="checkbox" name="programs" value="{{ prog.id }}" class="form-check-input" id="p_{{ prog.id }}">
+                                <label class="form-check-label fw-semibold text-dark" for="p_{{ prog.id }}">{{ prog.name }}</label>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No individual programs available for this category.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fas fa-save me-1"></i>Assign Programs</button>
+                    <a href="{% url 'assigned_programs' %}" class="btn btn-outline-secondary px-3">View Assigned Programs</a>
+                    <a href="{% url 'assign_group_program' %}" class="btn btn-warning px-3 fw-bold"><i class="fas fa-users-cog me-1"></i>Assign Group Program</a>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

@@ -74,9 +74,15 @@ $(document).ready(function(){
         }
         response.contestants.forEach(function(cont){
           $('#participants').append(
-            '<div class="form-check mb-1">'+
-              '<input type="checkbox" name="participants" value="'+cont.id+'" class="form-check-input participantBox" id="c_'+cont.id+'">'+
-              '<label class="form-check-label" for="c_'+cont.id+'">#'+cont.id+' '+cont.name+'</label>'+
+            '<div class="d-flex align-items-center justify-content-between border-bottom py-1 px-1">'+
+              '<div class="form-check mb-0">'+
+                '<input type="checkbox" name="participants" value="'+cont.id+'" class="form-check-input participantBox" id="c_'+cont.id+'">'+
+                '<label class="form-check-label fw-semibold" for="c_'+cont.id+'">#'+cont.id+' '+cont.name+'</label>'+
+              '</div>'+
+              '<div class="form-check mb-0 captainRadioWrap" id="cap_wrap_'+cont.id+'" style="display:none;">'+
+                '<input type="radio" name="captain" value="'+cont.id+'" class="form-check-input captainRadio" id="cap_'+cont.id+'">'+
+                '<label class="form-check-label small text-primary fw-bold cursor-pointer" for="cap_'+cont.id+'">⭐ Captain</label>'+
+              '</div>'+
             '</div>'
           );
         });
@@ -90,12 +96,30 @@ $(document).ready(function(){
     $('#participantsLabel').html('Select Group Members <span class="badge bg-primary text-white ms-1">Exactly '+requiredMembers+' required</span>:');
   });
 
-  // Limit selection count
+  // Limit selection count & handle Captain radio visibility
   $(document).on('change', '.participantBox', function(){
+    var contId = $(this).val();
     var checkedCount = $('.participantBox:checked').length;
-    if(checkedCount > requiredMembers){
-      alert("You can select at most " + requiredMembers + " members for this program.");
-      this.checked = false;
+
+    if(this.checked){
+      if(checkedCount > requiredMembers){
+        alert("You can select at most " + requiredMembers + " members for this program.");
+        this.checked = false;
+        return;
+      }
+      $('#cap_wrap_' + contId).show();
+      // Auto-select first checked as captain if no captain is selected
+      if($('.captainRadio:checked').length === 0){
+        $('#cap_' + contId).prop('checked', true);
+      }
+    } else {
+      $('#cap_wrap_' + contId).hide();
+      $('#cap_' + contId).prop('checked', false);
+      // If unchecking the captain, pick next checked contestant as captain
+      if($('.captainRadio:checked').length === 0 && checkedCount > 0){
+        var firstCheckedId = $('.participantBox:checked').first().val();
+        $('#cap_' + firstCheckedId).prop('checked', true);
+      }
     }
   });
 

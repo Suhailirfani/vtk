@@ -564,48 +564,73 @@ def view_results(request):
     view_mode = request.GET.get('view', 'announced') if is_admin else 'announced'
     announced_only = (view_mode == 'announced')
 
-    programs = Program.objects.filter(participation__marks__isnull=False).distinct()
+    programs = Program.objects.filter(
+        Q(participation__marks__isnull=False) | Q(groupparticipation__marks__isnull=False)
+    ).distinct()
     if announced_only:
         programs = programs.filter(is_announced=True)
     programs = programs.order_by('name')
 
     program_results = []
     for program in programs:
-        results = (
-            Participation.objects
-            .filter(program=program, marks__isnull=False)
-            .select_related('contestant', 'contestant__team')
-            .order_by('rank')
-        )
-
         members_count = get_members_count_for_program(program) if program.is_group else 1
 
-        for p in results:
-            if p.points_awarded and p.marks and p.marks > 0:
-                rank_pts, grade_pts, total_pts = calculate_points(
-                    p.rank,
-                    p.grade,
-                    program.is_group,
-                    members_count
-                )
-                p.rank_points = rank_pts
-                p.grade_points = grade_pts
-                p.total_points = total_pts
-            else:
-                p.rank_points = 0
-                p.grade_points = 0
-                p.total_points = 0
+        if program.is_group:
+            results = (
+                GroupParticipation.objects
+                .filter(program=program, marks__isnull=False)
+                .select_related('team', 'captain')
+                .prefetch_related('contestants')
+                .order_by('rank')
+            )
+            for g in results:
+                if g.points_awarded and g.marks and g.marks > 0:
+                    rank_pts, grade_pts, total_pts = calculate_points(
+                        g.rank,
+                        g.grade,
+                        is_group=True,
+                        members_count=members_count
+                    )
+                    g.rank_points = rank_pts
+                    g.grade_points = grade_pts
+                    g.total_points = total_pts
+                else:
+                    g.rank_points = 0
+                    g.grade_points = 0
+                    g.total_points = 0
+        else:
+            results = (
+                Participation.objects
+                .filter(program=program, marks__isnull=False)
+                .select_related('contestant', 'contestant__team')
+                .order_by('rank')
+            )
+            for p in results:
+                if p.points_awarded and p.marks and p.marks > 0:
+                    rank_pts, grade_pts, total_pts = calculate_points(
+                        p.rank,
+                        p.grade,
+                        is_group=False,
+                        members_count=1
+                    )
+                    p.rank_points = rank_pts
+                    p.grade_points = grade_pts
+                    p.total_points = total_pts
+                else:
+                    p.rank_points = 0
+                    p.grade_points = 0
+                    p.total_points = 0
 
         program_results.append({
             'program': program,
             'results': results,
             'is_group': program.is_group,
             'members_count': members_count,
-            'program_total_points': sum(p.total_points for p in results)
+            'program_total_points': sum(r.total_points for r in results)
         })
 
     categories_query = Category.objects.filter(
-        program__participation__marks__isnull=False
+        Q(program__participation__marks__isnull=False) | Q(program__groupparticipation__marks__isnull=False)
     ).distinct()
     if announced_only:
         categories_query = categories_query.filter(program__is_announced=True)

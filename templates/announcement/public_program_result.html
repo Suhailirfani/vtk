@@ -149,8 +149,20 @@
                             <div class="medal-badge">
                                 {% if winner.rank == 1 %}1{% elif winner.rank == 2 %}2{% elif winner.rank == 3 %}3{% endif %}
                             </div>
-                            <div class="winner-name text-truncate w-100" title="{{ winner.contestant.name }}">{{ winner.contestant.name }}</div>
-                            <div class="winner-team">{{ winner.contestant.team.name }}</div>
+                            <div class="winner-name text-truncate w-100" title="{% if is_group %}{{ winner.captain_display }}{% else %}{{ winner.contestant.name }}{% endif %}">
+                                {% if is_group %}
+                                    ⭐ {{ winner.captain_display }}
+                                {% else %}
+                                    {{ winner.contestant.name }}
+                                {% endif %}
+                            </div>
+                            <div class="winner-team">
+                                {% if is_group %}
+                                    {{ winner.team.name }}
+                                {% else %}
+                                    {{ winner.contestant.team.name }}
+                                {% endif %}
+                            </div>
                             
                             {% if winner.grade %}
                                 <span class="badge bg-primary px-2.5 py-1.5 small mt-2">Grade {{ winner.grade }}</span>
@@ -172,13 +184,20 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light border-bottom">
                         <tr>
-                            <th class="fw-bold ps-4" style="width: 100px;">Rank</th>
-                            <th class="fw-bold">Chest No</th>
-                            <th class="fw-bold text-center">Code</th>
-                            <th class="fw-bold">Contestant Name</th>
-                            <th class="fw-bold">Team</th>
+                            <th class="fw-bold ps-4" style="width: 80px;">Rank</th>
+                            {% if is_group %}
+                                <th class="fw-bold">Group Captain</th>
+                                <th class="fw-bold text-center">Code</th>
+                                <th class="fw-bold">Group Members</th>
+                                <th class="fw-bold">Team</th>
+                            {% else %}
+                                <th class="fw-bold">Chest No</th>
+                                <th class="fw-bold text-center">Code</th>
+                                <th class="fw-bold">Contestant Name</th>
+                                <th class="fw-bold">Team</th>
+                            {% endif %}
                             <th class="fw-bold text-center">Grade</th>
-                            <th class="fw-bold text-end pe-4" style="width: 150px;">Total Points</th>
+                            <th class="fw-bold text-end pe-4" style="width: 140px;">Total Points</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -187,16 +206,39 @@
                                 <td class="ps-4 fw-bold text-secondary">
                                     {% if result.rank == 1 %}🥇{% elif result.rank == 2 %}🥈{% elif result.rank == 3 %}🥉{% else %}{{ result.rank }}{% endif %}
                                 </td>
-                                <td class="fw-semibold text-muted">#{{ result.contestant.chest_no }}</td>
-                                <td class="text-center">
-                                    {% if result.code_letter %}
-                                        <span class="badge bg-light text-dark border">{{ result.code_letter|upper }}</span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="fw-bold text-dark">{{ result.contestant.name|upper }}</td>
-                                <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ result.contestant.team.name|upper }}</span></td>
+                                {% if is_group %}
+                                    <td class="fw-bold text-dark">
+                                        <i class="fas fa-star text-warning me-1"></i>{{ result.captain_display }}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if result.code_letter %}
+                                            <span class="badge bg-light text-dark border">{{ result.code_letter|upper }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% for c in result.contestants.all %}
+                                                <span class="badge {% if result.captain and c.id == result.captain.id %}bg-warning-subtle text-dark border border-warning{% else %}bg-primary-subtle text-primary border border-primary-subtle{% endif %} rounded-pill px-2 py-1">
+                                                    {% if result.captain and c.id == result.captain.id %}⭐ Captain: {% else %}#{{ c.chest_no }} {% endif %}{{ c.name }}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ result.team.name|upper }}</span></td>
+                                {% else %}
+                                    <td class="fw-semibold text-muted">#{{ result.contestant.chest_no }}</td>
+                                    <td class="text-center">
+                                        {% if result.code_letter %}
+                                            <span class="badge bg-light text-dark border">{{ result.code_letter|upper }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-bold text-dark">{{ result.contestant.name|upper }}</td>
+                                    <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ result.contestant.team.name|upper }}</span></td>
+                                {% endif %}
                                 <td class="text-center">
                                     {% if result.grade %}
                                         <span class="badge bg-info px-2.5 py-1.5 fw-bold">{{ result.grade }}</span>

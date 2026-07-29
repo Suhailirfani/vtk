@@ -121,6 +121,7 @@ class GroupParticipation(models.Model):
     contestants = models.ManyToManyField(Contestant)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)  # All contestants should be from same team
     group_name = models.CharField(max_length=200, blank=True)  # Optional group name
+    captain = models.ForeignKey(Contestant, on_delete=models.SET_NULL, null=True, blank=True, related_name='captain_groups')
     code_letter = models.CharField(max_length=5, null=True, blank=True)
     marks = models.IntegerField(null=True, blank=True)
     rank = models.PositiveIntegerField(null=True, blank=True)
@@ -130,6 +131,28 @@ class GroupParticipation(models.Model):
     def __str__(self):
         contestant_names = ", ".join([c.name for c in self.contestants.all()])
         return f"{contestant_names} ({self.program.name})"
+
+    @property
+    def captain_display(self):
+        if self.captain:
+            return f"#{self.captain.chest_no} {self.captain.name}"
+        first = self.contestants.first()
+        if first:
+            return f"#{first.chest_no} {first.name}"
+        return self.group_name or (self.team.name if self.team else "Group")
+
+    @property
+    def members_display(self):
+        members = list(self.contestants.all())
+        if not members:
+            return "No members assigned"
+        cap_id = self.captain_id or (members[0].id if members else None)
+        out = []
+        for m in members:
+            is_cap = (m.id == cap_id)
+            tag = " (Captain)" if is_cap else ""
+            out.append(f"#{m.chest_no} {m.name}{tag}")
+        return ", ".join(out)
 
     def get_contestant_names(self):
         return ", ".join([contestant.name for contestant in self.contestants.all()])
