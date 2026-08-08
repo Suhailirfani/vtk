@@ -1,16 +1,71 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5">
-    <h2>Edit Category</h2>
+<div class="container-fluid px-0">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <h3 class="fw-bold mb-0 text-slate-800"><i class="fas fa-edit me-2 text-primary"></i>Edit Category: {{ category.name }}</h3>
+        <a href="{% url 'add_category' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i class="fas fa-arrow-left me-1"></i>Back to Categories</a>
+    </div>
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="name" class="form-label">New Category Name</label>
-            <input type="text" name="name" id="name" class="form-control" value="{{ category.name }}">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-secondary"><i class="fas fa-folder-open me-2 text-primary"></i>Category Details</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-semibold">Category Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-folder text-muted"></i></span>
+                                <input type="text" name="name" id="name" class="form-control" value="{{ category.name }}" required>
+                            </div>
+                        </div>
+
+                        <!-- Combined / Common Category Option -->
+                        <div class="mb-4 p-3 bg-light rounded border">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" name="is_common" id="is_common" {% if category.is_common %}checked{% endif %} onchange="toggleIncludedCategories(this.checked)">
+                                <label class="form-check-label fw-semibold text-dark" for="is_common">
+                                    <i class="fas fa-layer-group text-primary me-1"></i> Combined / Common Category
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mb-2">Enable if this category combines multiple base categories.</small>
+
+                            <div id="included_categories_container" class="mt-2 border-top pt-2" style="display: {% if category.is_common %}block{% else %}none{% endif %};">
+                                <label class="form-label fw-semibold fs-7 text-secondary">Select Included Base Categories:</label>
+                                {% for base_cat in base_categories %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="included_categories" value="{{ base_cat.id }}" id="cat_{{ base_cat.id }}" {% if base_cat.id in selected_inc_ids %}checked{% endif %}>
+                                        <label class="form-check-label" for="cat_{{ base_cat.id }}">
+                                            {{ base_cat.name }}
+                                        </label>
+                                    </div>
+                                {% empty %}
+                                    <div class="text-muted small">No other base categories available.</div>
+                                {% endfor %}
+                                <small class="text-info d-block mt-1"><i class="fas fa-info-circle me-1"></i>If none selected, all base categories will be included by default.</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary py-2 px-4 fw-bold"><i class="fas fa-save me-2"></i>Update Category</button>
+                            <a href="{% url 'add_category' %}" class="btn btn-outline-secondary py-2 px-4">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <button type="submit" class="btn btn-success">Update</button>
-        <a href="{% url 'add_category' %}" class="btn btn-secondary">Cancel</a>
-    </form>
+    </div>
 </div>
+
+<script>
+    function toggleIncludedCategories(isCommon) {
+        const container = document.getElementById('included_categories_container');
+        if (container) {
+            container.style.display = isCommon ? 'block' : 'none';
+        }
+    }
+</script>
 {% endblock %}

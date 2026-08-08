@@ -653,7 +653,7 @@ def view_results(request):
 
 def contestant_points_list(request):
     contestants = Contestant.objects.filter(
-        category__name__in=["APEX", "CORTEX", "VERTEX"]
+        category__is_common=False
     ).distinct()
 
     contestant_results = []
@@ -665,7 +665,7 @@ def contestant_points_list(request):
         ).exclude(
             program__is_group=True
         ).exclude(
-            program__category__name__iexact="GENERAL"
+            program__category__is_common=True
         ).select_related("program", "program__category")
 
         total_points = 0

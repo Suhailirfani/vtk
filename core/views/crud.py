@@ -68,20 +68,34 @@ def add_category(request):
     if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('dashboard_team')
 
+@login_required
+def add_category(request):
+    if not (request.user.is_superuser or request.user.role == 'admin'):
+        return redirect('dashboard_team')
+
     if request.method == 'POST':
-        name = request.POST.get('name').strip()
+        name = request.POST.get('name', '').strip()
+        is_common = request.POST.get('is_common') == 'on' or request.POST.get('is_common') == '1'
+        inc_cat_ids = request.POST.getlist('included_categories')
+
         if name:
             if Category.objects.filter(name__iexact=name).exists():
                 messages.warning(request, f"Category '{name}' already exists.")
             else:
-                Category.objects.create(name=name)
+                cat = Category.objects.create(name=name, is_common=is_common)
+                if is_common and inc_cat_ids:
+                    cat.included_categories.set(inc_cat_ids)
                 messages.success(request, f"Category '{name}' added successfully.")
                 return redirect('add_category')
         else:
             messages.error(request, "Category name cannot be empty.")
 
-    categories = Category.objects.all().order_by('name')
-    return render(request, 'add_category.html', {'categories': categories})
+    categories = Category.objects.all().prefetch_related('included_categories').order_by('name')
+    base_categories = Category.objects.filter(is_common=False).order_by('name')
+    return render(request, 'add_category.html', {
+        'categories': categories,
+        'base_categories': base_categories,
+    })
 
 @login_required
 def edit_category(request, category_id):
@@ -91,16 +105,33 @@ def edit_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
 
     if request.method == 'POST':
-        new_name = request.POST.get('name').strip()
+        new_name = request.POST.get('name', '').strip()
+        is_common = request.POST.get('is_common') == 'on' or request.POST.get('is_common') == '1'
+        inc_cat_ids = request.POST.getlist('included_categories')
+
         if new_name:
             category.name = new_name
+            category.is_common = is_common
             category.save()
+
+            if is_common:
+                category.included_categories.set(inc_cat_ids)
+            else:
+                category.included_categories.clear()
+
             messages.success(request, "Category updated successfully.")
             return redirect('add_category')
         else:
             messages.error(request, "Name can't be empty.")
 
-    return render(request, 'edit_category.html', {'category': category})
+    base_categories = Category.objects.filter(is_common=False).exclude(id=category.id).order_by('name')
+    selected_inc_ids = list(category.included_categories.values_list('id', flat=True))
+
+    return render(request, 'edit_category.html', {
+        'category': category,
+        'base_categories': base_categories,
+        'selected_inc_ids': selected_inc_ids,
+    })
 
 @login_required
 def delete_category(request, category_id):
@@ -500,27 +531,13 @@ def assign_programs(request):
     if team_id and category_id:
         try:
             selected_category = Category.objects.get(id=category_id)
+            eligible_cats = selected_category.get_eligible_categories()
 
-            if selected_category.name.upper() == "GENERAL":
-                contestants = Contestant.objects.filter(
-                    team_id=team_id,
-                    category__name__in=["APEX", "VERTEX", "CORTEX"]
-                )
-                programs = Program.objects.filter(category=selected_category, is_group=False)
-
-            elif selected_category.name.upper() == "CATEGORY A":
-                contestants = Contestant.objects.filter(
-                    team_id=team_id,
-                    category__name__in=["APEX", "VERTEX"]
-                )
-                programs = Program.objects.filter(category=selected_category, is_group=False)
-
-            else:
-                contestants = Contestant.objects.filter(
-                    team_id=team_id,
-                    category=selected_category
-                )
-                programs = Program.objects.filter(category=selected_category, is_group=False)
+            contestants = Contestant.objects.filter(
+                team_id=team_id,
+                category__in=eligible_cats
+            )
+            programs = Program.objects.filter(category=selected_category, is_group=False)
 
         except Category.DoesNotExist:
             pass
@@ -594,8 +611,11 @@ def edit_assigned_programs(request, contestant_id):
         contestant = get_object_or_404(Contestant, id=contestant_id)
 
     all_programs = Program.objects.filter(
-        Q(category=contestant.category) | Q(category__name="GENERAL")
-    )
+        Q(category=contestant.category) | 
+        Q(category__is_common=True, category__included_categories=contestant.category) | 
+        Q(category__is_common=True, category__included_categories__isnull=True),
+        is_group=False
+    ).distinct()
 
     assigned_programs = Participation.objects.filter(contestant=contestant).values_list('program_id', flat=True)
 

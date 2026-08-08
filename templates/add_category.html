@@ -18,14 +18,41 @@
                 <div class="card-body p-4">
                     <form method="post" class="needs-validation">
                         {% csrf_token %}
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label for="name" class="form-label fw-semibold">Category Name</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="fas fa-folder-open text-muted"></i></span>
-                                <input type="text" name="name" id="name" class="form-control" placeholder="e.g., Senior" required>
+                                <input type="text" name="name" id="name" class="form-control" placeholder="e.g., Senior or General" required>
                             </div>
                             <div class="form-text text-muted">Categories help group contestants and programs (e.g. Apex, Vertex).</div>
                         </div>
+
+                        <!-- Combined / Common Category Option -->
+                        <div class="mb-3 p-3 bg-light rounded border">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" name="is_common" id="is_common" onchange="toggleIncludedCategories(this.checked)">
+                                <label class="form-check-label fw-semibold text-dark" for="is_common">
+                                    <i class="fas fa-layer-group text-primary me-1"></i> Combined / Common Category
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mb-2">Enable if this category combines multiple base categories (e.g., General or Category A).</small>
+
+                            <div id="included_categories_container" class="mt-2 border-top pt-2" style="display: none;">
+                                <label class="form-label fw-semibold fs-7 text-secondary">Select Included Base Categories:</label>
+                                {% for base_cat in base_categories %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="included_categories" value="{{ base_cat.id }}" id="cat_{{ base_cat.id }}">
+                                        <label class="form-check-label" for="cat_{{ base_cat.id }}">
+                                            {{ base_cat.name }}
+                                        </label>
+                                    </div>
+                                {% empty %}
+                                    <div class="text-muted small">No base categories available.</div>
+                                {% endfor %}
+                                <small class="text-info d-block mt-1"><i class="fas fa-info-circle me-1"></i>If none selected, all base categories will be included by default.</small>
+                            </div>
+                        </div>
+
                         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold"><i class="fas fa-check-circle me-2"></i>Create Category</button>
                     </form>
                 </div>
@@ -44,6 +71,16 @@
                             <div class="list-group-item py-3 px-4 d-flex justify-content-between align-items-center bg-hover-light transition-all">
                                 <div>
                                     <span class="fw-bold text-dark fs-6">{{ category.name|upper }}</span>
+                                    {% if category.is_common %}
+                                        <span class="badge bg-info text-dark ms-2">
+                                            <i class="fas fa-layer-group me-1"></i>Combined
+                                            {% if category.included_categories.all %}
+                                                ({% for inc in category.included_categories.all %}{{ inc.name }}{% if not forloop.last %}, {% endif %}{% endfor %})
+                                            {% else %}
+                                                (All Base)
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
                                 </div>
                                 <div class="d-flex gap-2">
                                     <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-outline-warning rounded-pill px-3" title="Edit Category">
@@ -68,6 +105,14 @@
     </div>
 </div>
 
+<script>
+    function toggleIncludedCategories(isCommon) {
+        const container = document.getElementById('included_categories_container');
+        if (container) {
+            container.style.display = isCommon ? 'block' : 'none';
+        }
+    }
+</script>
 <style>
     .bg-hover-light:hover {
         background-color: #f8fafc;

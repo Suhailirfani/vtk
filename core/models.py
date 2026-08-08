@@ -53,9 +53,32 @@ class Category(models.Model):
     ]
     name = models.CharField(max_length=100)
     competition_type = models.CharField(max_length=10, choices=COMPETITION_TYPES, default='MAIN')
+    is_common = models.BooleanField(
+        default=False, 
+        help_text="True if this is a combined/common category containing multiple base categories"
+    )
+    included_categories = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='parent_common_categories',
+        help_text="Included base categories for this common category"
+    )
 
     def __str__(self):
+        if self.is_common:
+            inc_list = ", ".join([c.name for c in self.included_categories.all()])
+            return f"{self.name} [Common: {inc_list or 'All'}]"
         return f"{self.name} ({self.get_competition_type_display()})"
+
+    def get_eligible_categories(self):
+        """Returns list of Category objects eligible for this category (included base categories for combined categories)."""
+        if self.is_common:
+            if self.included_categories.exists():
+                return list(self.included_categories.all())
+            return list(Category.objects.filter(is_common=False))
+        return [self]
+
 
 
 # ----------------- Program -----------------
