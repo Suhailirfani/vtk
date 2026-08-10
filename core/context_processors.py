@@ -2,5 +2,7 @@ from .models import SystemSetting
 
 def fest_settings(request):
     return {
-        'fest_name': SystemSetting.get_setting('fest_name', 'Meelad Competition'),
+        'fest_name': SystemSetting.get_setting('fest_name', 'MEELAD FEST'),
+        'institution_name': SystemSetting.get_setting('institution_name', 'HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI'),
     }
+

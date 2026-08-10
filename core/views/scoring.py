@@ -737,20 +737,33 @@ def system_config(request):
         elif 'fest_name' in request.POST:
             messages.error(request, "Fest name cannot be empty.")
 
+        # Handle institution name
+        institution_name = request.POST.get('institution_name', '').strip()
+        if institution_name:
+            setting, _ = SystemSetting.objects.get_or_create(key='institution_name')
+            setting.value = institution_name
+            setting.save()
+            messages.success(request, f"Institution name updated to: {institution_name}")
+        elif 'institution_name' in request.POST:
+            messages.error(request, "Institution name cannot be empty.")
+
     # Build context
     group_point_system = SystemSetting.get_setting('group_point_system', 'member_count')
-    fest_name = SystemSetting.get_setting('fest_name', 'Madrasa Fest')
+    fest_name = SystemSetting.get_setting('fest_name', 'MEELAD FEST')
+    institution_name = SystemSetting.get_setting('institution_name', 'HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI')
     total_programs = Program.objects.count()
     announced_programs = Program.objects.filter(is_announced=True).count()
 
     return render(request, 'system_config.html', {
         'group_point_system': group_point_system,
         'fest_name': fest_name,
+        'institution_name': institution_name,
         'total_programs': total_programs,
         'announced_programs': announced_programs,
         'total_teams': Team.objects.count(),
         'total_contestants': Contestant.objects.count(),
     })
+
 
 
 # =================== Group Marks & Scoring Views ===================

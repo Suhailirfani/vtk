@@ -12,8 +12,18 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 
 from django.db.models import Q
-from ..models import Program, Category, Team, Contestant, Participation, GroupParticipation
+from ..models import Program, Category, Team, Contestant, Participation, GroupParticipation, SystemSetting
 from .scoring import calculate_points, get_members_count_for_program
+
+def get_pdf_base_context(extra_context=None):
+    context = {
+        'fest_name': SystemSetting.get_setting('fest_name', 'MEELAD FEST'),
+        'institution_name': SystemSetting.get_setting('institution_name', 'HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI'),
+    }
+    if extra_context:
+        context.update(extra_context)
+    return context
+
 
 @login_required
 def export_excel(request):
@@ -58,13 +68,12 @@ def download_participation_list_pdf(request):
     if hasattr(user, 'team'):
         filename = f"{user.team.name}_participation_list.pdf"
 
-    context = {
-        'fest_name': "MEELAD FEST",
+    context = get_pdf_base_context({
         'date': timezone.now().strftime("%d-%m-%Y"),
         'participants': participants,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     template_path = 'participation_list_pdf.html'
     response = HttpResponse(content_type='application/pdf')
@@ -90,12 +99,12 @@ def download_participants_pdf(request):
         filename = "all_participants.pdf"
 
     template_path = 'pdf_template.html'
-    context = {
+    context = get_pdf_base_context({
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -128,13 +137,13 @@ def download_category_participants_pdf(request):
         filename = "participants_by_category.pdf"
 
     template_path = 'pdf_template.html'
-    context = {
+    context = get_pdf_base_context({
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None,
         'category_filter': category.name if category_id else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -168,13 +177,13 @@ def download_team_participants_pdf(request):
             filename = "participants_by_team.pdf"
 
     template_path = 'pdf_template.html'
-    context = {
+    context = get_pdf_base_context({
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None,
         'team_filter': team.name if team_id else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -206,13 +215,13 @@ def download_green_room_pdf(request, program_id):
         filename = f"{program.name}_green_room.pdf"
 
     template_path = 'green_room_pdf.html'
-    context = {
+    context = get_pdf_base_context({
         'program': program,
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -244,13 +253,13 @@ def download_call_list_pdf(request, program_id):
         filename = f"{program.name}_call_list.pdf"
 
     template_path = 'call_list_pdf.html'
-    context = {
+    context = get_pdf_base_context({
         'program': program,
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -282,13 +291,13 @@ def download_valuation_form_pdf(request, program_id):
         filename = f"{program.name}_valuation.pdf"
 
     template_path = 'valuation_form.html'
-    context = {
+    context = get_pdf_base_context({
         'program': program,
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -326,12 +335,12 @@ def download_all_call_lists_pdf(request):
         filename = "all_programs_call_list.pdf"
 
     template_path = 'all_call_list_pdf.html'
-    context = {
+    context = get_pdf_base_context({
         'program_participants': program_participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -369,11 +378,11 @@ def download_all_green_room_pdf(request):
         filename = "all_green_room.pdf"
 
     template_path = 'all_green_room_pdf.html'
-    context = {
+    context = get_pdf_base_context({
         'program_participants': program_participants,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -411,11 +420,11 @@ def download_all_valuation_forms_pdf(request):
         filename = "all_programs_valuation.pdf"
 
     template_path = 'all_valuation_forms.html'
-    context = {
+    context = get_pdf_base_context({
         'program_participants': program_participants,
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
-    }
+    })
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -440,9 +449,9 @@ def assigned_programs_pdf(request):
         participations = participations.filter(contestant__category_id=category_id)
 
     template_path = 'assigned_programs_pdf.html'
-    context = {
+    context = get_pdf_base_context({
         'participations': participations,
-    }
+    })
 
     template = get_template(template_path)
     html = template.render(context)
@@ -469,11 +478,11 @@ def contestant_programs_pdf_xml(request):
         )
         team_name = None
 
-    context = {
+    context = get_pdf_base_context({
         "contestants": contestants,
         "is_team_user": is_team_user,
         "team_name": team_name,
-    }
+    })
 
     template = get_template("contestant_programs_pdf_xml.html")
     html = template.render(context)
@@ -490,7 +499,8 @@ def contestant_programs_pdf_xml(request):
 
 def render_to_pdf(template_src, context_dict={}):
     template = get_template(template_src)
-    html = template.render(context_dict)
+    full_context = get_pdf_base_context(context_dict)
+    html = template.render(full_context)
     response = HttpResponse(content_type='application/pdf')
     pisa_status = pisa.CreatePDF(html, dest=response)
     if pisa_status.err:
@@ -581,9 +591,12 @@ def program_result_pdf(request, program_id):
 
     elements = []
 
+    fest_name = SystemSetting.get_setting('fest_name', 'MEELAD FEST')
+    institution_name = SystemSetting.get_setting('institution_name', 'HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI')
+
     title_style = styles['Title']
-    elements.append(Paragraph("<font size=10 color='#033067'><b>HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA VETTIKKATTIRI</b></font>", title_style))
-    elements.append(Paragraph("<font size=15 color='#d63384'><b>MEELAD FEST</b></font>", title_style))
+    elements.append(Paragraph(f"<font size=10 color='#033067'><b>{institution_name.upper()}</b></font>", title_style))
+    elements.append(Paragraph(f"<font size=15 color='#d63384'><b>{fest_name.upper()}</b></font>", title_style))
     elements.append(Paragraph(f"<font size=14 color='#333333'><b>RESULTS: {program.name.upper()} - {program.category.name.upper()}</b></font>", title_style))
     elements.append(Spacer(1, 12))
 
@@ -690,7 +703,7 @@ def program_result_pdf(request, program_id):
         canvas.setFillColorRGB(0.9, 0.9, 0.9, alpha=0.2)
         canvas.translate(300, 600)
         canvas.rotate(45)
-        canvas.drawCentredString(0, 0, "MEELAD FEST")
+        canvas.drawCentredString(0, 0, fest_name.upper())
         canvas.restoreState()
 
     doc.build(elements, onFirstPage=add_watermark, onLaterPages=add_watermark)
@@ -763,8 +776,11 @@ def contestant_programs_pdf(request):
         alignment=TA_CENTER,
     )
     
+    fest_name = SystemSetting.get_setting('fest_name', 'MEELAD FEST')
+    institution_name = SystemSetting.get_setting('institution_name', 'HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI')
+
     # Add title
-    title = Paragraph("🎭 Contestant Programs", title_style)
+    title = Paragraph(f"<font size=10 color='#033067'><b>{institution_name.upper()}</b></font><br/><font size=16 color='#d63384'><b>{fest_name.upper()}</b></font><br/>🎭 Contestant Programs", title_style)
     elements.append(title)
     
     # Add filter info
@@ -876,7 +892,7 @@ def download_chest_cards_pdf(request):
     contestants = Contestant.objects.all().order_by('chest_no')
 
     template_path = 'chest_cards_pdf.html'
-    context = {'contestants': contestants}
+    context = get_pdf_base_context({'contestants': contestants})
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="chest_cards.pdf"'

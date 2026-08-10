@@ -177,10 +177,12 @@
 </head>
 <body>
     <div class="header">
-        <h1>CALL LIST</h1>
-        <div class="program-name">{{ program.name }}</div>
+        <div class="institution" style="font-size: 11px; font-weight: bold; color: #033067; letter-spacing: 1px; text-transform: uppercase;">{{ institution_name|default:"HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI" }}</div>
+        <div class="event-title" style="font-size: 16px; font-weight: bold; color: #d63384; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px;">{{ fest_name|default:"MEELAD FEST"|upper }}</div>
+        <h1 style="color: #007bff; margin: 0; font-size: 20px;">CALL LIST</h1>
+        <div class="program-name">PROGRAM: {{ program.name|upper }}</div>
         <div class="subtitle">
-            Category: {{ program.category.name }}
+            Category: {{ program.category.name|upper }}
             {% if is_team_user %} | Team: {{ team_name }}{% endif %}
         </div>
     </div>

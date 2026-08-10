@@ -33,8 +33,8 @@
 <body>
 
     {% for entry in program_participants %}
-    <div class="program-block">
-        <div  class="event-title"><h1>FELIZDIA 2K25</h1></div>
+        <div style="text-align: center; font-size: 11px; font-weight: bold; color: #033067; letter-spacing: 1px; text-transform: uppercase;">{{ institution_name|default:"HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI" }}</div>
+        <div class="event-title"><h1>{{ fest_name|default:"MEELAD FEST"|upper }}</h1></div>
         <h1>CALL LIST</h1>
         <h2>PROGRAM: {{forloop.counter}}.&nbsp;{{ entry.program.name|upper }} </h2>
         <h2>CATEGORY: {{ entry.program.category.name }}</h2>

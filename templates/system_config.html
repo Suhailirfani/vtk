@@ -356,12 +356,22 @@
             </div>
         </div>
         <div class="card-body">
-            <label class="form-label" for="fest_name">Competition / Fest Name</label>
-            <input type="text" id="fest_name" name="fest_name"
-                   value="{{ fest_name }}"
-                   class="form-control"
-                   placeholder="e.g., HIMHS Meelad Fest 2025"
-                   required>
+            <div class="mb-3">
+                <label class="form-label" for="fest_name">Competition / Fest Name</label>
+                <input type="text" id="fest_name" name="fest_name"
+                       value="{{ fest_name }}"
+                       class="form-control"
+                       placeholder="e.g., MEELAD FEST"
+                       required>
+            </div>
+            <div class="mb-0">
+                <label class="form-label" for="institution_name">Institution Name</label>
+                <input type="text" id="institution_name" name="institution_name"
+                       value="{{ institution_name }}"
+                       class="form-control"
+                       placeholder="e.g., HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI"
+                       required>
+            </div>
         </div>
     </div>
 

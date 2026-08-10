@@ -14,7 +14,11 @@
     </style>
 </head>
 <body>
-    <h2>All Green Room Lists</h2>
+    <div style="text-align: center; margin-bottom: 15px;">
+        <div style="font-size: 11px; font-weight: bold; color: #033067; letter-spacing: 1px; text-transform: uppercase;">{{ institution_name|default:"HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI" }}</div>
+        <div style="font-size: 16px; font-weight: bold; color: #d63384; letter-spacing: 2px; text-transform: uppercase; margin: 4px 0;">{{ fest_name|default:"MEELAD FEST"|upper }}</div>
+        <h2 style="margin: 0;">ALL GREEN ROOM LISTS</h2>
+    </div>
     {% if is_team_user %}
         <p><strong>Team:</strong> {{ team_name }}</p>
     {% endif %}
