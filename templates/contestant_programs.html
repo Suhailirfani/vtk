@@ -101,10 +101,10 @@
                         </div>
                         
                         <h6 class="mt-3 mb-2">📌 Assigned Programs 
-                            <span class="badge bg-success">{{ cont.participation_set.count }}</span>
+                            <span class="badge bg-success">{{ cont.participation_set.count|add:cont.groupparticipation_set.count }}</span>
                         </h6>
                         
-                        {% if cont.participation_set.all %}
+                        {% if cont.participation_set.all or cont.groupparticipation_set.all %}
                             <ul class="list-group list-group-flush">
                                 {% for participation in cont.participation_set.all %}
                                     <li class="list-group-item d-flex justify-content-between align-items-start">
@@ -119,12 +119,29 @@
                                             {% endif %}
                                             <small class="text-muted">{{ participation.program.category.name }}</small>
                                         </div>
-                                        <span class="badge {% if participation.program.is_group %}bg-warning text-dark{% else %}bg-secondary{% endif %} rounded-pill">
-                                            {% if participation.program.is_group %}
-                                                Group
-                                            {% else %}
-                                                Individual
+                                        <span class="badge bg-secondary rounded-pill">
+                                            Individual
+                                        </span>
+                                    </li>
+                                {% endfor %}
+                                {% for g_part in cont.groupparticipation_set.all %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-start bg-light-subtle">
+                                        <div class="ms-2 me-auto">
+                                            <div class="fw-bold text-dark">
+                                                <i class="fas fa-users text-warning me-1"></i>{{ g_part.program.name }}
+                                                {% if g_part.group_name %}<small class="text-muted">({{ g_part.group_name }})</small>{% endif %}
+                                            </div>
+                                            {% if g_part.program.schedule %}
+                                                <div class="small text-success fw-semibold my-1">
+                                                    <i class="fas fa-clock text-warning me-1"></i>
+                                                    Day {{ g_part.program.schedule.fest_day.day_number }} @ {{ g_part.program.schedule.stage.name }}
+                                                    ({{ g_part.program.schedule.start_time|time:"h:i A" }} - {{ g_part.program.schedule.end_time|time:"h:i A" }})
+                                                </div>
                                             {% endif %}
+                                            <small class="text-muted">{{ g_part.program.category.name }}</small>
+                                        </div>
+                                        <span class="badge bg-warning text-dark rounded-pill">
+                                            Group
                                         </span>
                                     </li>
                                 {% endfor %}

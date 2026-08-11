@@ -23,6 +23,7 @@
         <div style="font-size: 16px; font-weight: bold; color: #d63384; letter-spacing: 2px; text-transform: uppercase; margin: 4px 0;">{{ fest_name|default:"MEELAD FEST"|upper }}</div>
         <h3 style="margin: 0;">Assigned Programs Report</h3>
     </div>
+    <h4>Individual Program Assignments</h4>
     <table>
         <thead>
             <tr>
@@ -38,15 +39,48 @@
             {% for p in participations %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ p.contestant.name }}</td>
-                <td>{{ p.contestant.team.name }}</td>
-                <td>{{ p.contestant.category.name }}</td>
-                <td>{{ p.program.name }}</td>
+                <td>{{ p.contestant.name|upper }} (#{{ p.contestant.chest_no }})</td>
+                <td>{{ p.contestant.team.name|upper }}</td>
+                <td>{{ p.contestant.category.name|upper }}</td>
+                <td>{{ p.program.name|upper }}</td>
                 <td>{{ p.grade|default:"-" }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" align="center">No participations found</td>
+                <td colspan="6" align="center">No individual program assignments found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <h4>Group Program Assignments</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Group Name</th>
+                <th>Team</th>
+                <th>Category</th>
+                <th>Program</th>
+                <th>Members</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in group_participations %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ g.group_name|default:g.team.name|upper }}</td>
+                <td>{{ g.team.name|upper }}</td>
+                <td>{{ g.program.category.name|upper }}</td>
+                <td>{{ g.program.name|upper }}</td>
+                <td>{{ g.members_display }}</td>
+                <td>{{ g.grade|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" align="center">No group program assignments found</td>
             </tr>
             {% endfor %}
         </tbody>

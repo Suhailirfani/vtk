@@ -60,60 +60,163 @@
         </div>
     </div>
 
-    <!-- Assignments Table Card -->
-    <div class="card shadow border-0 rounded-3">
-        <div class="card-body p-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light border-bottom">
-                        <tr>
-                            <th class="fw-bold" style="width: 60px;">#</th>
-                            <th class="fw-bold">Contestant</th>
-                            <th class="fw-bold">Team</th>
-                            <th class="fw-bold">Category</th>
-                            <th class="fw-bold">Program</th>
-                            <th class="fw-bold text-center">Grade</th>
-                            <th class="fw-bold text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for participation in participations %}
-                            <tr>
-                                <td class="text-muted">{{ forloop.counter }}</td>
-                                <td class="fw-bold text-dark">{{ participation.contestant.name|upper }}</td>
-                                <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ participation.contestant.team.name|upper }}</span></td>
-                                <td><span class="badge bg-secondary-subtle text-secondary-emphasis px-2.5 py-1.5">{{ participation.contestant.category.name|upper }}</span></td>
-                                <td class="fw-semibold text-primary">{{ participation.program.name|upper }}</td>
-                                <td class="text-center">
-                                    {% if participation.grade %}
-                                        <span class="badge bg-success-subtle text-success-emphasis px-2.5 py-1.5 fw-bold">{{ participation.grade }}</span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-1">
-                                        <a href="{% url 'edit_assigned_programs' participation.contestant.id %}" class="btn btn-sm btn-outline-warning rounded-pill px-2.5" title="Edit Assignments">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{% url 'delete_assigned_program' participation.id %}"
-                                           class="btn btn-sm btn-outline-danger rounded-pill px-2.5"
-                                           onclick="return confirm('Are you sure you want to delete this program assignment?');" title="Delete Assignment">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center py-5">
-                                    <div class="text-muted fs-1 mb-2"><i class="fas fa-clipboard-list"></i></div>
-                                    <p class="text-muted mb-0">No program assignments found.</p>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-fill mb-3 border-bottom-0" id="assignmentTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold py-2.5 shadow-sm rounded-top me-2" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual-pane" type="button" role="tab" aria-controls="individual-pane" aria-selected="true">
+                <i class="fas fa-user me-1.5 text-primary"></i>Individual Programs 
+                <span class="badge bg-primary rounded-pill ms-1">{{ participations.count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2.5 shadow-sm rounded-top" id="group-tab" data-bs-toggle="tab" data-bs-target="#group-pane" type="button" role="tab" aria-controls="group-pane" aria-selected="false">
+                <i class="fas fa-users me-1.5 text-warning"></i>Group Programs 
+                <span class="badge bg-warning text-dark rounded-pill ms-1">{{ group_participations.count }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="assignmentTabsContent">
+        <!-- Individual Programs Pane -->
+        <div class="tab-pane fade show active" id="individual-pane" role="tabpanel" aria-labelledby="individual-tab">
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="individual-table">
+                            <thead class="table-light border-bottom">
+                                <tr>
+                                    <th class="fw-bold" style="width: 60px;">#</th>
+                                    <th class="fw-bold">Contestant</th>
+                                    <th class="fw-bold">Team</th>
+                                    <th class="fw-bold">Category</th>
+                                    <th class="fw-bold">Program</th>
+                                    <th class="fw-bold text-center">Grade</th>
+                                    <th class="fw-bold text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for participation in participations %}
+                                    <tr>
+                                        <td class="text-muted">{{ forloop.counter }}</td>
+                                        <td class="fw-bold text-dark">{{ participation.contestant.name|upper }} <span class="badge bg-light text-secondary border ms-1">#{% if participation.contestant.chest_no %}{{ participation.contestant.chest_no }}{% endif %}</span></td>
+                                        <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ participation.contestant.team.name|upper }}</span></td>
+                                        <td><span class="badge bg-secondary-subtle text-secondary-emphasis px-2.5 py-1.5">{{ participation.contestant.category.name|upper }}</span></td>
+                                        <td class="fw-semibold text-primary">{{ participation.program.name|upper }}</td>
+                                        <td class="text-center">
+                                            {% if participation.grade %}
+                                                <span class="badge bg-success-subtle text-success-emphasis px-2.5 py-1.5 fw-bold">{{ participation.grade }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-flex justify-content-end gap-1">
+                                                <a href="{% url 'edit_assigned_programs' participation.contestant.id %}" class="btn btn-sm btn-outline-warning rounded-pill px-2.5" title="Edit Assignments">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'delete_assigned_program' participation.id %}"
+                                                   class="btn btn-sm btn-outline-danger rounded-pill px-2.5"
+                                                   onclick="return confirm('Are you sure you want to delete this program assignment?');" title="Delete Assignment">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5">
+                                            <div class="text-muted fs-1 mb-2"><i class="fas fa-clipboard-list"></i></div>
+                                            <p class="text-muted mb-0">No individual program assignments found.</p>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group Programs Pane -->
+        <div class="tab-pane fade" id="group-pane" role="tabpanel" aria-labelledby="group-tab">
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="group-table">
+                            <thead class="table-light border-bottom">
+                                <tr>
+                                    <th class="fw-bold" style="width: 60px;">#</th>
+                                    <th class="fw-bold">Group Name</th>
+                                    <th class="fw-bold">Team</th>
+                                    <th class="fw-bold">Category</th>
+                                    <th class="fw-bold">Program</th>
+                                    <th class="fw-bold">Captain & Members</th>
+                                    <th class="fw-bold text-center">Grade</th>
+                                    <th class="fw-bold text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in group_participations %}
+                                    <tr>
+                                        <td class="text-muted">{{ forloop.counter }}</td>
+                                        <td class="fw-bold text-dark">
+                                            <i class="fas fa-users text-warning me-1"></i>
+                                            {{ group.group_name|default:group.team.name|upper }}
+                                            {% if group.code_letter %}
+                                                <span class="badge bg-dark text-light ms-1">{{ group.code_letter }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ group.team.name|upper }}</span></td>
+                                        <td><span class="badge bg-secondary-subtle text-secondary-emphasis px-2.5 py-1.5">{{ group.program.category.name|upper }}</span></td>
+                                        <td class="fw-semibold text-primary">{{ group.program.name|upper }}</td>
+                                        <td>
+                                            <div class="small">
+                                                {% if group.captain %}
+                                                    <span class="fw-bold text-warning-emphasis"><i class="fas fa-star text-warning me-1"></i>{{ group.captain.name|upper }}</span> (#{{ group.captain.chest_no }})<br>
+                                                {% endif %}
+                                                <span class="text-muted">
+                                                    Members: 
+                                                    {% for contestant in group.contestants.all %}
+                                                        {% if not group.captain or contestant.id != group.captain.id %}
+                                                            {{ contestant.name|upper }} (#{{ contestant.chest_no }}){% if not forloop.last %}, {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if group.grade %}
+                                                <span class="badge bg-success-subtle text-success-emphasis px-2.5 py-1.5 fw-bold">{{ group.grade }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-flex justify-content-end gap-1">
+                                                <a href="{% url 'delete_group_assignment' group.id %}"
+                                                   class="btn btn-sm btn-outline-danger rounded-pill px-2.5"
+                                                   onclick="return confirm('Are you sure you want to delete this group program assignment?');" title="Delete Assignment">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center py-5">
+                                            <div class="text-muted fs-1 mb-2"><i class="fas fa-users"></i></div>
+                                            <p class="text-muted mb-2">No group program assignments found.</p>
+                                            <a href="{% url 'assign_group_program' %}" class="btn btn-warning btn-sm rounded-pill fw-bold">
+                                                <i class="fas fa-plus me-1"></i>Assign Group Program
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -136,19 +239,11 @@
         const rows = document.querySelectorAll('tbody tr');
         
         rows.forEach(row => {
-            // Skip the empty state row if no assignments are found
-            const emptyCell = row.querySelector('td.text-center');
-            if (emptyCell && row.cells.length === 1) return;
+            // Skip empty state rows
+            if (row.cells.length <= 1) return;
             
-            const contestantCell = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
-            const teamCell = row.cells[2] ? row.cells[2].textContent.toLowerCase() : '';
-            const categoryCell = row.cells[3] ? row.cells[3].textContent.toLowerCase() : '';
-            const programCell = row.cells[4] ? row.cells[4].textContent.toLowerCase() : '';
-            
-            if (contestantCell.includes(query) || 
-                teamCell.includes(query) || 
-                categoryCell.includes(query) || 
-                programCell.includes(query)) {
+            const rowText = row.textContent.toLowerCase();
+            if (rowText.includes(query)) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';

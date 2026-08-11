@@ -442,15 +442,20 @@ def assigned_programs_pdf(request):
     team_id = request.GET.get('team')
     category_id = request.GET.get('category')
 
-    participations = Participation.objects.all()
+    participations = Participation.objects.select_related('contestant__team', 'contestant__category', 'program').all()
+    group_participations = GroupParticipation.objects.select_related('team', 'program', 'program__category', 'captain').prefetch_related('contestants').all()
+
     if team_id:
         participations = participations.filter(contestant__team_id=team_id)
+        group_participations = group_participations.filter(team_id=team_id)
     if category_id:
         participations = participations.filter(contestant__category_id=category_id)
+        group_participations = group_participations.filter(program__category_id=category_id)
 
     template_path = 'assigned_programs_pdf.html'
     context = get_pdf_base_context({
         'participations': participations,
+        'group_participations': group_participations,
     })
 
     template = get_template(template_path)
@@ -469,12 +474,22 @@ def contestant_programs_pdf_xml(request):
 
     if is_team_user:
         contestants = Contestant.objects.filter(team=user.team).prefetch_related(
-            "participation_set__program__category"
+            "participation_set__program__category",
+            "participation_set__program__schedule__fest_day",
+            "participation_set__program__schedule__stage",
+            "groupparticipation_set__program__category",
+            "groupparticipation_set__program__schedule__fest_day",
+            "groupparticipation_set__program__schedule__stage"
         )
         team_name = user.team.name
     else:
         contestants = Contestant.objects.all().prefetch_related(
-            "participation_set__program__category"
+            "participation_set__program__category",
+            "participation_set__program__schedule__fest_day",
+            "participation_set__program__schedule__stage",
+            "groupparticipation_set__program__category",
+            "groupparticipation_set__program__schedule__fest_day",
+            "groupparticipation_set__program__schedule__stage"
         )
         team_name = None
 

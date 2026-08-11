@@ -578,22 +578,29 @@ def view_assigned_programs(request):
     participations = Participation.objects.select_related(
         'contestant__team', 'contestant__category', 'program'
     )
+    group_participations = GroupParticipation.objects.select_related(
+        'team', 'program', 'program__category', 'captain'
+    ).prefetch_related('contestants')
 
     if is_team_user:
         team_id = request.user.team.id
         teams = Team.objects.filter(id=team_id)
         participations = participations.filter(contestant__team_id=team_id)
+        group_participations = group_participations.filter(team_id=team_id)
     else:
         team_id = request.GET.get('team')
         teams = Team.objects.all()
         if team_id:
             participations = participations.filter(contestant__team_id=team_id)
+            group_participations = group_participations.filter(team_id=team_id)
 
     if category_id:
         participations = participations.filter(contestant__category_id=category_id)
+        group_participations = group_participations.filter(program__category_id=category_id)
 
     context = {
-        'participations': participations.order_by('contestant__team__name'),
+        'participations': participations.order_by('contestant__team__name', 'contestant__chest_no'),
+        'group_participations': group_participations.order_by('team__name', 'program__name'),
         'teams': teams,
         'categories': Category.objects.all(),
         'selected_team': int(team_id) if team_id else '',
@@ -646,6 +653,16 @@ def delete_assigned_program(request, participation_id):
     messages.success(request, "Program assignment removed successfully.")
     return redirect('assigned_programs')
 
+@login_required
+def delete_group_assignment(request, group_id):
+    if request.user.role == 'team' and hasattr(request.user, 'team'):
+        group = get_object_or_404(GroupParticipation, id=group_id, team=request.user.team)
+    else:
+        group = get_object_or_404(GroupParticipation, id=group_id)
+    group.delete()
+    messages.success(request, "Group program assignment removed successfully.")
+    return redirect('assigned_programs')
+
 def program_list(request):
     programs = Program.objects.all().order_by('category__name', 'name')
     categories = Category.objects.all()
@@ -659,24 +676,41 @@ def program_list(request):
 @login_required
 def contestant_programs(request):
     user = request.user
+    team_id = request.GET.get('team')
+    category_id = request.GET.get('category')
+
+    contestants = Contestant.objects.select_related('team', 'category').prefetch_related(
+        "participation_set__program__category",
+        "participation_set__program__schedule__fest_day",
+        "participation_set__program__schedule__stage",
+        "groupparticipation_set__program__category",
+        "groupparticipation_set__program__schedule__fest_day",
+        "groupparticipation_set__program__schedule__stage"
+    ).order_by('chest_no')
 
     if hasattr(user, "team"):
-        contestants = Contestant.objects.filter(team=user.team).prefetch_related(
-            "participation_set__program__category"
-        )
+        contestants = contestants.filter(team=user.team)
         is_team_user = True
         team_name = user.team.name
     else:
-        contestants = Contestant.objects.prefetch_related(
-            "participation_set__program__category"
-        )
         is_team_user = False
         team_name = None
+        if team_id:
+            contestants = contestants.filter(team_id=team_id)
+
+    if category_id:
+        contestants = contestants.filter(category_id=category_id)
 
     context = {
         "contestants": contestants,
         "is_team_user": is_team_user,
         "team_name": team_name,
+        "teams": Team.objects.all(),
+        "categories": Category.objects.all(),
+        "team_id": team_id or "",
+        "category_id": category_id or "",
+        "selected_team": Team.objects.filter(id=team_id).first() if team_id else None,
+        "selected_category": Category.objects.filter(id=category_id).first() if category_id else None,
     }
     return render(request, "contestant_programs.html", context)
 

@@ -106,6 +106,8 @@ urlpatterns = [
     #result pdf 
     path('results/pdf/', views.results_pdf, name='results_pdf'),
     path('assigned-programs/delete/<int:participation_id>/', views.delete_assigned_program, name='delete_assigned_program'),
+    path('assigned-programs/group/delete/<int:group_id>/', views.delete_group_assignment, name='delete_group_assignment'),
+
 
     # path('list_page/', views.list_page, name='list_page'),
     # urls.py
