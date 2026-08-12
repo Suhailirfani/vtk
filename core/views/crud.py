@@ -861,15 +861,19 @@ def assign_group_program(request):
         captain_id = request.POST.get('captain')
 
         program = get_object_or_404(Program, id=program_id)
-        required_cnt = program.members_count or 1
+        max_members = program.members_count or 1
 
-        if len(participant_ids) != required_cnt:
-            messages.error(request, f"Please select exactly {required_cnt} participants for {program.name}.")
+        if len(participant_ids) < 1:
+            messages.error(request, f"Please select at least 1 participant for {program.name}.")
+            return redirect('assign_group_program')
+
+        if len(participant_ids) > max_members:
+            messages.error(request, f"You can select at most {max_members} participants for {program.name}.")
             return redirect('assign_group_program')
 
         if is_team_user:
             contestants = list(Contestant.objects.filter(id__in=participant_ids, team=request.user.team))
-            if len(contestants) != required_cnt:
+            if len(contestants) != len(participant_ids):
                 messages.error(request, "All selected contestants must belong to your team.")
                 return redirect('assign_group_program')
         else:

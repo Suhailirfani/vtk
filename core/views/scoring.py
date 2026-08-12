@@ -778,11 +778,14 @@ def create_group_participation(request):
         try:
             with transaction.atomic():
                 program = get_object_or_404(Program, id=program_id, is_group=True)
-                required_count = program.members_count or 1
+                max_count = program.members_count or 1
                 
                 # Validate contestant count
-                if len(contestant_ids) != required_count:
-                    messages.error(request, f"Exact participant count required for {program.name} is {required_count}. You selected {len(contestant_ids)}.")
+                if len(contestant_ids) < 1:
+                    messages.error(request, f"Please select at least 1 participant for {program.name}.")
+                    return redirect('group_participation_form')
+                if len(contestant_ids) > max_count:
+                    messages.error(request, f"Maximum participant count allowed for {program.name} is {max_count}. You selected {len(contestant_ids)}.")
                     return redirect('group_participation_form')
                 
                 # Get contestants and validate they're from the same team

@@ -47,7 +47,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function(){
-  var requiredMembers = 1;
+  var maxMembers = 1;
 
   $('#category').change(function(){
     var categoryId = $(this).val();
@@ -59,7 +59,7 @@ $(document).ready(function(){
       }, function(response){
         $('#program').empty().append('<option value="">-- Select Program --</option>');
         response.programs.forEach(function(prog){
-          $('#program').append('<option value="'+prog.id+'" data-members="'+prog.members_count+'">'+prog.name+' ('+prog.members_count+' members required)</option>');
+          $('#program').append('<option value="'+prog.id+'" data-members="'+prog.members_count+'">'+prog.name+' (Max '+prog.members_count+' members)</option>');
         });
       });
 
@@ -92,8 +92,8 @@ $(document).ready(function(){
 
   $('#program').change(function(){
     var selectedOpt = $(this).find(':selected');
-    requiredMembers = parseInt(selectedOpt.data('members')) || 1;
-    $('#participantsLabel').html('Select Group Members <span class="badge bg-primary text-white ms-1">Exactly '+requiredMembers+' required</span>:');
+    maxMembers = parseInt(selectedOpt.data('members')) || 1;
+    $('#participantsLabel').html('Select Group Members <span class="badge bg-primary text-white ms-1">Up to '+maxMembers+' members allowed (min 1)</span>:');
   });
 
   // Limit selection count & handle Captain radio visibility
@@ -102,8 +102,8 @@ $(document).ready(function(){
     var checkedCount = $('.participantBox:checked').length;
 
     if(this.checked){
-      if(checkedCount > requiredMembers){
-        alert("You can select at most " + requiredMembers + " members for this program.");
+      if(checkedCount > maxMembers){
+        alert("You can select at most " + maxMembers + " members for this program.");
         this.checked = false;
         return;
       }
@@ -131,8 +131,11 @@ $(document).ready(function(){
       return;
     }
     var checkedCount = $('.participantBox:checked').length;
-    if (checkedCount !== requiredMembers) {
-      alert("Please select exactly " + requiredMembers + " participants for this group.");
+    if (checkedCount < 1) {
+      alert("Please select at least 1 participant for this group.");
+      e.preventDefault();
+    } else if (checkedCount > maxMembers) {
+      alert("You can select at most " + maxMembers + " participants for this group.");
       e.preventDefault();
     }
   });

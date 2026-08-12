@@ -39,7 +39,7 @@
                 <option value="">-- Select Program --</option>
                 {% for program in programs %}
                     <option value="{{ program.id }}" data-count="{{ program.members_count|default:'1' }}">
-                        {{ program.name }} ({{ program.members_count|default:"1" }} Members Required)
+                        {{ program.name }} (Up to {{ program.members_count|default:"1" }} Members)
                     </option>
                 {% endfor %}
             </select>
@@ -99,17 +99,23 @@
         document.getElementById('program_id').addEventListener('change', function() {
             const option = this.options[this.selectedIndex];
             const count = parseInt(option.dataset.count) || 1;
-            window.requiredCount = count;
+            window.maxCount = count;
         });
         
         // Validate form submission
         document.querySelector('form').addEventListener('submit', function(e) {
             const checkedBoxes = document.querySelectorAll('input[name="contestants"]:checked');
             const count = checkedBoxes.length;
-            
-            if (window.requiredCount && count !== window.requiredCount) {
+
+            if (count < 1) {
                 e.preventDefault();
-                alert(`Please select exactly ${window.requiredCount} contestants for this group program.`);
+                alert('Please select at least 1 contestant for this group program.');
+                return;
+            }
+            
+            if (window.maxCount && count > window.maxCount) {
+                e.preventDefault();
+                alert(`You can select at most ${window.maxCount} contestants for this group program.`);
                 return;
             }
             

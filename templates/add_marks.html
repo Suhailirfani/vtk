@@ -78,7 +78,7 @@
         <!-- Group Program Marks Entry Form Table -->
         <div class="card shadow border-0 rounded-3">
             <div class="card-header bg-primary text-white py-3">
-                <h5 class="mb-0 fw-bold"><i class="fas fa-users me-2"></i>Group Program: {{ selected_program_obj.name }} (Required Members: {{ selected_program_obj.members_count|default:"1" }})</h5>
+                <h5 class="mb-0 fw-bold"><i class="fas fa-users me-2"></i>Group Program: {{ selected_program_obj.name }} (Max Members: {{ selected_program_obj.members_count|default:"1" }})</h5>
             </div>
             <div class="card-body p-4">
                 <form method="post">

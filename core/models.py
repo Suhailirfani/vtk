@@ -194,12 +194,12 @@ class GroupParticipation(models.Model):
             raise ValidationError("This program is not a group program")
         
         # Check participant count (this will be validated in views/forms)
-        if hasattr(self, 'contestants'):
+        if hasattr(self, 'contestants') and self.pk:
             count = self.contestants.count()
-            if count < self.program.min_participants or count > self.program.max_participants:
+            max_members = self.program.members_count or 1
+            if count < 1 or count > max_members:
                 raise ValidationError(
-                    f"Number of participants must be between {self.program.min_participants} "
-                    f"and {self.program.max_participants}"
+                    f"Number of participants must be between 1 and {max_members}"
                 )
 
 # ----------------- Team Points -----------------
