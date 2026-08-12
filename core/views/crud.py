@@ -770,14 +770,27 @@ def green_room_list(request, program_id):
 @login_required
 def all_green_room_lists(request):
     user = request.user
+    category_id = request.GET.get('category') or request.GET.get('category_id')
+    program_type = request.GET.get('program_type') or request.GET.get('type')
 
-    programs = Program.objects.all().select_related('category').order_by('category__name', 'name')
+    programs = Program.objects.all().select_related('category')
+    if category_id and str(category_id).isdigit():
+        programs = programs.filter(category_id=category_id)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        programs = programs.filter(program_type=program_type)
+
+    programs = programs.order_by('category__name', 'name')
     program_participants = []
 
     for program in programs:
-        participants = Contestant.objects.filter(
-            participation__program=program
-        ).select_related('team', 'category').order_by('chest_no')
+        if program.is_group:
+            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
+            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
+            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
+        else:
+            participants = Contestant.objects.filter(
+                participation__program=program
+            ).select_related('team', 'category').order_by('chest_no')
 
         if hasattr(user, 'team'):
             participants = participants.filter(team=user.team)
@@ -787,8 +800,13 @@ def all_green_room_lists(request):
             'participants': participants
         })
 
+    categories = Category.objects.all()
+
     context = {
         'program_participants': program_participants,
+        'categories': categories,
+        'selected_category': str(category_id) if category_id else '',
+        'selected_type': program_type if program_type else '',
         'is_team_user': hasattr(user, 'team'),
         'team_name': user.team.name if hasattr(user, 'team') else None
     }

@@ -313,13 +313,27 @@ def download_valuation_form_pdf(request, program_id):
 @login_required
 def download_all_call_lists_pdf(request):
     user = request.user
-    programs = Program.objects.all().order_by('name')
+    category_id = request.GET.get('category') or request.GET.get('category_id')
+    program_type = request.GET.get('program_type') or request.GET.get('type')
+
+    programs = Program.objects.all().select_related('category')
+    if category_id and str(category_id).isdigit():
+        programs = programs.filter(category_id=category_id)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        programs = programs.filter(program_type=program_type)
+
+    programs = programs.order_by('category__name', 'name')
 
     program_participants = []
     for program in programs:
-        participants = Contestant.objects.filter(
-            participation__program=program
-        ).select_related('team', 'category').order_by('chest_no')
+        if program.is_group:
+            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
+            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
+            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
+        else:
+            participants = Contestant.objects.filter(
+                participation__program=program
+            ).select_related('team', 'category').order_by('chest_no')
 
         if hasattr(user, 'team'):
             participants = participants.filter(team=user.team)
@@ -329,10 +343,20 @@ def download_all_call_lists_pdf(request):
             'participants': participants
         })
 
+    filter_parts = []
+    if category_id and str(category_id).isdigit():
+        cat_obj = Category.objects.filter(id=category_id).first()
+        if cat_obj:
+            filter_parts.append(cat_obj.name)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        filter_parts.append(program_type)
+
+    filter_str = f"_{'_'.join(filter_parts)}" if filter_parts else ""
+
     if hasattr(user, 'team'):
-        filename = f"all_programs_{user.team.name}_call_list.pdf"
+        filename = f"all_programs_{user.team.name}_call_list{filter_str}.pdf"
     else:
-        filename = "all_programs_call_list.pdf"
+        filename = f"all_programs_call_list{filter_str}.pdf"
 
     template_path = 'all_call_list_pdf.html'
     context = get_pdf_base_context({
@@ -356,13 +380,27 @@ def download_all_call_lists_pdf(request):
 @login_required
 def download_all_green_room_pdf(request):
     user = request.user
-    programs = Program.objects.all().select_related('category').order_by('category__name', 'name')
+    category_id = request.GET.get('category') or request.GET.get('category_id')
+    program_type = request.GET.get('program_type') or request.GET.get('type')
+
+    programs = Program.objects.all().select_related('category')
+    if category_id and str(category_id).isdigit():
+        programs = programs.filter(category_id=category_id)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        programs = programs.filter(program_type=program_type)
+
+    programs = programs.order_by('category__name', 'name')
 
     program_participants = []
     for program in programs:
-        participants = Contestant.objects.filter(
-            participation__program=program
-        ).select_related('team', 'category').order_by('chest_no')
+        if program.is_group:
+            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
+            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
+            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
+        else:
+            participants = Contestant.objects.filter(
+                participation__program=program
+            ).select_related('team', 'category').order_by('chest_no')
 
         if hasattr(user, 'team'):
             participants = participants.filter(team=user.team)
@@ -372,10 +410,20 @@ def download_all_green_room_pdf(request):
             'participants': participants
         })
 
+    filter_parts = []
+    if category_id and str(category_id).isdigit():
+        cat_obj = Category.objects.filter(id=category_id).first()
+        if cat_obj:
+            filter_parts.append(cat_obj.name)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        filter_parts.append(program_type)
+
+    filter_str = f"_{'_'.join(filter_parts)}" if filter_parts else ""
+
     if hasattr(user, 'team'):
-        filename = f"all_green_room_{user.team.name}.pdf"
+        filename = f"all_green_room_{user.team.name}{filter_str}.pdf"
     else:
-        filename = "all_green_room.pdf"
+        filename = f"all_green_room{filter_str}.pdf"
 
     template_path = 'all_green_room_pdf.html'
     context = get_pdf_base_context({
@@ -398,13 +446,27 @@ def download_all_green_room_pdf(request):
 @login_required
 def download_all_valuation_forms_pdf(request):
     user = request.user
-    programs = Program.objects.all().order_by('name')
+    category_id = request.GET.get('category') or request.GET.get('category_id')
+    program_type = request.GET.get('program_type') or request.GET.get('type')
+
+    programs = Program.objects.all().select_related('category')
+    if category_id and str(category_id).isdigit():
+        programs = programs.filter(category_id=category_id)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        programs = programs.filter(program_type=program_type)
+
+    programs = programs.order_by('category__name', 'name')
     program_participants = []
 
     for program in programs:
-        participants = Contestant.objects.filter(
-            participation__program=program
-        ).select_related('team', 'category').order_by('chest_no')
+        if program.is_group:
+            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
+            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
+            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
+        else:
+            participants = Contestant.objects.filter(
+                participation__program=program
+            ).select_related('team', 'category').order_by('chest_no')
 
         if hasattr(user, 'team'):
             participants = participants.filter(team=user.team)
@@ -414,10 +476,20 @@ def download_all_valuation_forms_pdf(request):
             'participants': participants
         })
 
+    filter_parts = []
+    if category_id and str(category_id).isdigit():
+        cat_obj = Category.objects.filter(id=category_id).first()
+        if cat_obj:
+            filter_parts.append(cat_obj.name)
+    if program_type in ['STAGE', 'OFF_STAGE']:
+        filter_parts.append(program_type)
+
+    filter_str = f"_{'_'.join(filter_parts)}" if filter_parts else ""
+
     if hasattr(user, 'team'):
-        filename = f"all_programs_{user.team.name}_valuation.pdf"
+        filename = f"all_programs_{user.team.name}_valuation{filter_str}.pdf"
     else:
-        filename = "all_programs_valuation.pdf"
+        filename = f"all_programs_valuation{filter_str}.pdf"
 
     template_path = 'all_valuation_forms.html'
     context = get_pdf_base_context({

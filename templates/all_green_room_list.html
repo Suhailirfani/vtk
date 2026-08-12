@@ -6,6 +6,33 @@
         <p><strong>Team:</strong> {{ team_name }}</p>
     {% endif %}
 
+    <!-- 🎯 Filters -->
+    <form method="get" class="card shadow-sm border-0 mb-4 bg-light p-3">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-secondary mb-1"><i class="fas fa-filter me-1 text-primary"></i>Category:</label>
+                <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-secondary mb-1"><i class="fas fa-layer-group me-1 text-primary"></i>Program Type:</label>
+                <select name="program_type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Types (Stage & Off-Stage)</option>
+                    <option value="STAGE" {% if selected_type == 'STAGE' %}selected{% endif %}>Stage Programs Only</option>
+                    <option value="OFF_STAGE" {% if selected_type == 'OFF_STAGE' %}selected{% endif %}>Off-Stage Programs Only</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end pt-2 pt-md-0 gap-2">
+                <a href="{% url 'all_green_room_lists' %}" class="btn btn-sm btn-outline-secondary w-50"><i class="fas fa-undo me-1"></i>Reset</a>
+                <a href="{% url 'download_all_green_room_pdf' %}?category={{ selected_category }}&program_type={{ selected_type }}" class="btn btn-sm btn-primary w-50"><i class="fas fa-file-pdf me-1"></i>Export PDF</a>
+            </div>
+        </div>
+    </form>
+
     <!-- 🔍 Search box -->
     <div class="mb-3">
         <input type="text" id="searchInput" class="form-control" placeholder="Search by Chest No, Name, Category, or Team">
