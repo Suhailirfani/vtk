@@ -111,6 +111,7 @@ class Program(models.Model):
 class Contestant(models.Model):
     chest_no = models.PositiveIntegerField(unique=True, null=True)
     name = models.CharField(max_length=100)
+    student_class = models.CharField(max_length=50, blank=True, null=True, verbose_name="Class")
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True)
     total_points = models.IntegerField(default=0)

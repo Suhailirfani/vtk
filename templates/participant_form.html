@@ -21,6 +21,14 @@
                 </div>
 
                 <div class="mb-3">
+                    <label for="id_student_class" class="form-label">Class / Standard</label>
+                    {{ form.student_class }}
+                    {% if form.student_class.errors %}
+                        <div class="text-danger">{{ form.student_class.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
                     <label for="id_team" class="form-label">Team</label>
                     {{ form.team }}
                     {% if form.team.errors %}

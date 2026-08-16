@@ -1,20 +1,16 @@
 from django import forms
-from .models import Contestant, Participation, Team, Program
+from .models import Contestant, Participation, Team, Program, Category
 
 class ContestantForm(forms.ModelForm):
     class Meta:
         model = Contestant
-        fields = ['name']
-
-
-
-
-from .models import Contestant, Team, Category
-
-class ContestantForm(forms.ModelForm):
-    class Meta:
-        model = Contestant
-        fields = ['name', 'team', 'category']
+        fields = ['name', 'student_class', 'team', 'category']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter student full name'}),
+            'student_class': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Class 10A / Std 5'}),
+            'team': forms.Select(attrs={'class': 'form-select'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+        }
 
 class TeamCategoryForm(forms.Form):
     team = forms.ModelChoiceField(queryset=Team.objects.all())

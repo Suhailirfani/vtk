@@ -1,112 +1,333 @@
-<!-- Modal -->
+<!-- Add Participant Modal -->
 <div class="modal fade" id="addParticipantModal" tabindex="-1" aria-labelledby="addParticipantModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content shadow border-0 rounded-4">
 
-      <div class="modal-header">
-        <h5 class="modal-title" id="addParticipantModalLabel">Add Participants</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header bg-primary text-white py-3 px-4 rounded-top-4">
+        <h5 class="modal-title fw-bold" id="addParticipantModalLabel">
+          <i class="fas fa-user-plus me-2"></i>Add Students / Participants
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
-      <div class="modal-body">
-        <!-- Nav Tabs -->
-        <ul class="nav nav-tabs" id="participantTab" role="tablist">
+      <div class="modal-body p-4">
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills nav-justified mb-4 p-1 bg-light rounded-3" id="participantTab" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single" type="button" role="tab">Single Entry</button>
+            <button class="nav-link active fw-semibold" id="single-tab" data-bs-toggle="pill" data-bs-target="#single" type="button" role="tab">
+              <i class="fas fa-user me-1"></i>Single Entry
+            </button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk" type="button" role="tab">Bulk Upload</button>
+            <button class="nav-link fw-semibold" id="grid-tab" data-bs-toggle="pill" data-bs-target="#grid" type="button" role="tab">
+              <i class="fas fa-th me-1"></i>Grid Entry (Batch)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="bulk-tab" data-bs-toggle="pill" data-bs-target="#bulk" type="button" role="tab">
+              <i class="fas fa-file-excel me-1"></i>Bulk Excel Import
+            </button>
           </li>
         </ul>
 
-        <div class="tab-content mt-3">
-          <!-- Single Entry Tab -->
+        <div class="tab-content">
+          <!-- 1. SINGLE ENTRY TAB -->
           <div class="tab-pane fade show active" id="single" role="tabpanel">
             <form method="POST" action="{% url 'add_participant' %}">
               {% csrf_token %}
               <input type="hidden" name="form_type" value="single">
 
-              <div class="mb-3">
-                <label for="id_name" class="form-label">Name</label>
-                <input type="text" name="name" class="form-control" id="id_name" required>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="id_name" class="form-label fw-bold">Student Name <span class="text-danger">*</span></label>
+                  <input type="text" name="name" class="form-control" id="id_name" placeholder="Enter student full name" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="id_student_class" class="form-label fw-bold">Class / Standard</label>
+                  <input type="text" name="student_class" class="form-control" id="id_student_class" placeholder="e.g. Class 10A / Std 5">
+                </div>
+
+                <div class="col-md-6">
+                  <label for="id_team" class="form-label fw-bold">Team <span class="text-danger">*</span></label>
+                  <select name="team" class="form-select" id="id_team" required {% if request.user.team %}disabled{% endif %}>
+                    <option value="" disabled {% if not request.user.team %}selected{% endif %}>-- Select Team --</option>
+                    {% for team in teams %}
+                      <option value="{{ team.id }}" {% if request.user.team and request.user.team.id == team.id %}selected{% endif %}>
+                        {{ team.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% if request.user.team %}
+                    <input type="hidden" name="team" value="{{ request.user.team.id }}">
+                  {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                  <label for="id_category" class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+                  <select name="category" class="form-select" id="id_category" required>
+                    <option value="" disabled selected>-- Select Category --</option>
+                    {% for category in categories %}
+                      <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
               </div>
 
-              <div class="mb-3">
-                <label for="id_team" class="form-label">Team</label>
-                <select name="team" class="form-select" id="id_team" required {% if request.user.team %}disabled{% endif %}>
-                  {% for team in teams %}
-                    <option value="{{ team.id }}"
-                      {% if request.user.team and request.user.team.id == team.id %}
-                        selected
-                      {% endif %}>
-                      {{ team.name }}
-                    </option>
-                  {% endfor %}
-                </select>
-                {% if request.user.team %}
-                  <input type="hidden" name="team" value="{{ request.user.team.id }}">
-                {% endif %}
-              </div>
-
-              <div class="mb-3">
-                <label for="id_category" class="form-label">Category</label>
-                <select name="category" class="form-select" id="id_category" required>
-                  {% for category in categories %}
-                    <option value="{{ category.id }}">{{ category.name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="text-end">
-                <button type="submit" class="btn btn-success">Save</button>
+              <div class="text-end mt-4">
+                <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                  <i class="fas fa-save me-1"></i>Save Student
+                </button>
               </div>
             </form>
           </div>
 
-          <!-- Bulk Upload Tab -->
+          <!-- 2. GRID ENTRY TAB -->
+          <div class="tab-pane fade" id="grid" role="tabpanel">
+            <form method="POST" action="{% url 'add_participant' %}" id="gridEntryForm">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="grid">
+
+              <!-- Grid Common Options -->
+              <div class="card bg-light border-0 mb-3">
+                <div class="card-body py-2 px-3">
+                  <div class="row g-2 align-items-center">
+                    <div class="col-md-6">
+                      <label class="form-label mb-0 small fw-bold text-muted">Common Team (Optional Default)</label>
+                      <select name="common_team" id="grid_common_team" class="form-select form-select-sm" {% if request.user.team %}disabled{% endif %}>
+                        <option value="">-- Apply per row or select common --</option>
+                        {% for team in teams %}
+                          <option value="{{ team.id }}" {% if request.user.team and request.user.team.id == team.id %}selected{% endif %}>
+                            {{ team.name }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                      {% if request.user.team %}
+                        <input type="hidden" name="common_team" value="{{ request.user.team.id }}">
+                      {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label mb-0 small fw-bold text-muted">Common Category (Optional Default)</label>
+                      <select name="common_category" id="grid_common_category" class="form-select form-select-sm">
+                        <option value="">-- Apply per row or select common --</option>
+                        {% for category in categories %}
+                          <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grid Table -->
+              <div class="table-responsive" style="max-height: 350px;">
+                <table class="table table-bordered table-hover align-middle" id="gridTable">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th style="width: 50px;" class="text-center">#</th>
+                      <th>Student Name <span class="text-danger">*</span></th>
+                      <th style="width: 150px;">Class</th>
+                      {% if not request.user.team %}
+                        <th style="width: 180px;">Team</th>
+                      {% endif %}
+                      <th style="width: 180px;">Category</th>
+                      <th style="width: 60px;" class="text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gridTableBody">
+                    <!-- Dynamic Rows Will Be Added Here via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                  <button type="button" class="btn btn-outline-success btn-sm rounded-pill me-2" id="addGridRowBtn">
+                    <i class="fas fa-plus me-1"></i>Add Row
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" id="clearGridRowsBtn">
+                    <i class="fas fa-eraser me-1"></i>Clear All
+                  </button>
+                </div>
+                <div>
+                  <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-success px-4 fw-bold">
+                    <i class="fas fa-check-circle me-1"></i>Save All Students
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- 3. BULK EXCEL UPLOAD TAB -->
           <div class="tab-pane fade" id="bulk" role="tabpanel">
+            <div class="row align-items-center mb-3">
+              <div class="col-md-8">
+                <p class="text-muted mb-0">
+                  Upload an Excel spreadsheet containing student details. Supported format: <code>.xlsx</code> or <code>.xls</code>.
+                </p>
+              </div>
+              <div class="col-md-4 text-md-end">
+                <a href="{% url 'download_participant_excel_template' %}" class="btn btn-outline-primary btn-sm rounded-pill">
+                  <i class="fas fa-download me-1"></i>Download Excel Template
+                </a>
+              </div>
+            </div>
+
             <form method="POST" action="{% url 'add_participant' %}" enctype="multipart/form-data">
               {% csrf_token %}
               <input type="hidden" name="form_type" value="bulk">
 
-              <div class="mb-3">
-                <label for="excel_file" class="form-label">Upload Excel File</label>
+              <div class="mb-4">
+                <label for="excel_file" class="form-label fw-bold">Choose Excel File <span class="text-danger">*</span></label>
                 <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" class="form-control" required>
               </div>
 
-              
+              <div class="card border-0 bg-light mb-4">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2 text-dark"><i class="fas fa-table me-2 text-primary"></i>Expected Column Headers:</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered bg-white text-center mb-0">
+                      <thead class="table-secondary">
+                        <tr>
+                          <th>Name</th>
+                          <th>Class</th>
+                          <th>Team</th>
+                          <th>Category</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>John Doe</td>
+                          <td>10 A</td>
+                          <td>Red Team</td>
+                          <td>Sub Junior</td>
+                        </tr>
+                        <tr>
+                          <td>Jane Smith</td>
+                          <td>12 B</td>
+                          <td>Blue Team</td>
+                          <td>Senior</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <small class="text-muted mt-2 d-block">
+                    * If you are logged in as a Team Account, Team name column is optional as your team will automatically be assigned.
+                  </small>
+                </div>
+              </div>
+
               <div class="text-end">
-                <button type="submit" class="btn btn-success">Upload</button>
+                <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success px-4 fw-bold">
+                  <i class="fas fa-upload me-1"></i>Upload & Import
+                </button>
               </div>
             </form>
-
-            <hr>
-            <h6 class="fw-bold">Excel Format Example:</h6>
-            <table class="table table-bordered small">
-              <thead class="table-light">
-                <tr>
-                  <th>Name</th>
-                  <th>Team</th>
-                  <th>Category</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>John Doe</td>
-                  <td>Red Team</td>
-                  <td>Speech</td>
-                </tr>
-                <tr>
-                  <td>Jane Smith</td>
-                  <td>Blue Team</td>
-                  <td>Song</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
   </div>
 </div>
+
+<!-- JavaScript for Dynamic Grid Row Addition -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const gridTableBody = document.getElementById('gridTableBody');
+    const addRowBtn = document.getElementById('addGridRowBtn');
+    const clearRowsBtn = document.getElementById('clearGridRowsBtn');
+
+    const teamsOptions = `{% for team in teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}`;
+    const categoriesOptions = `{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}`;
+    const isTeamUser = {% if request.user.team %}true{% else %}false{% endif %};
+
+    function createRow(index) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="text-center fw-bold text-muted row-index">${index}</td>
+        <td>
+          <input type="text" name="grid_name[]" class="form-control form-control-sm" placeholder="Student Name" required>
+        </td>
+        <td>
+          <input type="text" name="grid_class[]" class="form-control form-control-sm" placeholder="Class/Std">
+        </td>
+        ${!isTeamUser ? `
+        <td>
+          <select name="grid_team[]" class="form-select form-select-sm">
+            <option value="">Use Common</option>
+            ${teamsOptions}
+          </select>
+        </td>` : ''}
+        <td>
+          <select name="grid_category[]" class="form-select form-select-sm">
+            <option value="">Use Common</option>
+            ${categoriesOptions}
+          </select>
+        </td>
+        <td class="text-center">
+          <button type="button" class="btn btn-outline-danger btn-sm p-1 px-2 remove-row-btn" title="Remove Row">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      `;
+      return tr;
+    }
+
+    function reindexRows() {
+      const rows = gridTableBody.querySelectorAll('tr');
+      rows.forEach((row, idx) => {
+        const indexTd = row.querySelector('.row-index');
+        if (indexTd) indexTd.textContent = idx + 1;
+      });
+    }
+
+    function addRows(count = 3) {
+      const currentCount = gridTableBody.querySelectorAll('tr').length;
+      for (let i = 0; i < count; i++) {
+        gridTableBody.appendChild(createRow(currentCount + i + 1));
+      }
+    }
+
+    if (addRowBtn) {
+      addRowBtn.addEventListener('click', function () {
+        addRows(1);
+      });
+    }
+
+    if (clearRowsBtn) {
+      clearRowsBtn.addEventListener('click', function () {
+        gridTableBody.innerHTML = '';
+        addRows(3);
+      });
+    }
+
+    gridTableBody.addEventListener('click', function (e) {
+      const removeBtn = e.target.closest('.remove-row-btn');
+      if (removeBtn) {
+        const tr = removeBtn.closest('tr');
+        if (gridTableBody.querySelectorAll('tr').length > 1) {
+          tr.remove();
+          reindexRows();
+        } else {
+          // If only 1 row left, reset inputs instead of removing
+          tr.querySelectorAll('input').forEach(input => input.value = '');
+          tr.querySelectorAll('select').forEach(select => select.value = '');
+        }
+      }
+    });
+
+    // Initialize with 3 empty rows when modal opens
+    const addParticipantModal = document.getElementById('addParticipantModal');
+    if (addParticipantModal) {
+      addParticipantModal.addEventListener('shown.bs.modal', function () {
+        if (gridTableBody.children.length === 0) {
+          addRows(3);
+        }
+      });
+    }
+  });
+</script>

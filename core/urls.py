@@ -56,6 +56,7 @@ urlpatterns = [
     
     path('participants/', views.participant_list, name='participant_list'),
     path('participants/add/', views.add_participant, name='add_participant'),
+    path('participants/download-template/', views.download_participant_excel_template, name='download_participant_excel_template'),
     path('participants/edit/<int:id>/', views.edit_participant, name='edit_participant'),
     path('participants/delete/<int:id>/', views.delete_participant, name='delete_participant'),
     path('add_team/', views.add_team, name='add_team'),

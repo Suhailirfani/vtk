@@ -508,6 +508,9 @@
       </div>
       <div class="card-body">
         <div class="operations-grid">
+          <button type="button" class="operation-btn border-0 text-white" style="background: linear-gradient(135deg, #28a745, #1e7e34);" data-bs-toggle="modal" data-bs-target="#addParticipantModal">
+            <i class="fas fa-user-plus me-1"></i> Add Student
+          </button>
           <a href="{% url 'participant_list' %}" class="operation-btn">Participant List</a>
           <a href="{% url 'program_list' %}" class="operation-btn">Program List</a>
           <a href="{% url 'assign_programs' %}" class="operation-btn">Assign Programme</a>
@@ -536,11 +539,21 @@
           <div class="contestant-item">
             <div class="contestant-info">
               <div class="contestant-number">{{ forloop.counter }}</div>
-              <div class="contestant-name">{{ contestant.name|upper }}</div>
+              <div>
+                <div class="contestant-name">{{ contestant.name|upper }}</div>
+                {% if contestant.student_class %}
+                  <small class="text-muted"><i class="fas fa-graduation-cap me-1"></i>Class: {{ contestant.student_class }}</small>
+                {% endif %}
+              </div>
             </div>
-            <div class="chest-badge">
-              <span>🏷️</span>
-              <span>{{ contestant.chest_no }}</span>
+            <div class="d-flex align-items-center gap-2">
+              <a href="{% url 'edit_participant' contestant.id %}" class="btn btn-sm btn-outline-warning rounded-circle p-1" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;" title="Edit Student">
+                <i class="fas fa-pencil-alt" style="font-size: 0.75rem;"></i>
+              </a>
+              <div class="chest-badge">
+                <span>🏷️</span>
+                <span>{{ contestant.chest_no }}</span>
+              </div>
             </div>
           </div>
           {% empty %}
@@ -564,5 +577,8 @@
     </div>
   </div>
 </div>
+
+<!-- Add Student Modal -->
+{% include 'add_participant.html' %}
 
 {% endblock %}

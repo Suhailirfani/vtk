@@ -419,65 +419,213 @@ def participants_by_team(request):
         'total_participants': participants.count(),
     })
 
+@login_required
 def add_participant(request):
     if request.method == 'POST':
-        if 'excel_file' in request.FILES:
-            excel_file = request.FILES['excel_file']
-            try:
-                df = pd.read_excel(excel_file)
-                for _, row in df.iterrows():
-                    name = row.get("name")
-                    team_name = row.get("team")
-                    category_name = row.get("category")
+        form_type = request.POST.get('form_type')
+        user = request.user
+        default_team = user.team if hasattr(user, 'team') else None
 
-                    if not (name and team_name and category_name):
-                        continue
+        # ---------------- 1. GRID ENTRY ----------------
+        if form_type == 'grid':
+            grid_names = request.POST.getlist('grid_name[]') or request.POST.getlist('grid_name')
+            grid_classes = request.POST.getlist('grid_class[]') or request.POST.getlist('grid_class')
+            grid_categories = request.POST.getlist('grid_category[]') or request.POST.getlist('grid_category')
+            grid_teams = request.POST.getlist('grid_team[]') or request.POST.getlist('grid_team')
 
-                    try:
-                        team = Team.objects.get(name=team_name)
-                        category = Category.objects.get(name=category_name)
+            common_team_id = request.POST.get('common_team')
+            common_category_id = request.POST.get('common_category')
+
+            created_count = 0
+            errors = []
+
+            for i in range(len(grid_names)):
+                name = grid_names[i].strip() if i < len(grid_names) and grid_names[i] else ""
+                if not name:
+                    continue
+
+                s_class = grid_classes[i].strip() if i < len(grid_classes) and grid_classes[i] else ""
+
+                # Determine Team
+                team_id = grid_teams[i] if (i < len(grid_teams) and grid_teams[i]) else common_team_id
+                team = None
+                if default_team:
+                    team = default_team
+                elif team_id:
+                    team = Team.objects.filter(id=team_id).first()
+
+                # Determine Category
+                cat_id = grid_categories[i] if (i < len(grid_categories) and grid_categories[i]) else common_category_id
+                category = Category.objects.filter(id=cat_id).first() if cat_id else None
+
+                if not team and not default_team:
+                    errors.append(f"Team missing for '{name}'.")
+                    continue
+                if not category:
+                    errors.append(f"Category missing for '{name}'.")
+                    continue
+
+                Contestant.objects.create(
+                    name=name,
+                    student_class=s_class,
+                    team=team,
+                    category=category
+                )
+                created_count += 1
+
+            if created_count > 0:
+                messages.success(request, f"Successfully added {created_count} participant(s) via Grid entry.")
+            if errors:
+                for err in errors:
+                    messages.warning(request, err)
+
+            next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'participant_list'
+            return redirect(next_url)
+
+        # ---------------- 2. BULK EXCEL ENTRY ----------------
+        elif form_type == 'bulk' or 'excel_file' in request.FILES:
+            if 'excel_file' in request.FILES:
+                excel_file = request.FILES['excel_file']
+                try:
+                    df = pd.read_excel(excel_file)
+                    # Normalize columns
+                    col_map = {str(col).strip().lower(): col for col in df.columns}
+                    
+                    name_col = next((col_map[k] for k in ['name', 'student_name', 'student name', 'participant', 'participant name'] if k in col_map), None)
+                    class_col = next((col_map[k] for k in ['class', 'student_class', 'student class', 'std', 'grade'] if k in col_map), None)
+                    team_col = next((col_map[k] for k in ['team', 'team_name', 'team name', 'house'] if k in col_map), None)
+                    cat_col = next((col_map[k] for k in ['category', 'category_name', 'category name', 'cat'] if k in col_map), None)
+
+                    created_count = 0
+                    skipped_count = 0
+
+                    for _, row in df.iterrows():
+                        name = str(row[name_col]).strip() if name_col and pd.notna(row[name_col]) else ""
+                        s_class = str(row[class_col]).strip() if class_col and pd.notna(row[class_col]) else ""
+                        team_val = str(row[team_col]).strip() if team_col and pd.notna(row[team_col]) else ""
+                        cat_val = str(row[cat_col]).strip() if cat_col and pd.notna(row[cat_col]) else ""
+
+                        if not name or name.lower() == 'nan':
+                            continue
+
+                        # Resolve Team
+                        team = None
+                        if default_team:
+                            team = default_team
+                        elif team_val:
+                            team = Team.objects.filter(Q(name__iexact=team_val) | Q(id__iexact=team_val if team_val.isdigit() else -1)).first()
+
+                        # Resolve Category
+                        category = None
+                        if cat_val:
+                            category = Category.objects.filter(Q(name__iexact=cat_val) | Q(id__iexact=cat_val if cat_val.isdigit() else -1)).first()
+
+                        if not team:
+                            messages.warning(request, f"Team '{team_val}' not found for contestant '{name}'. Skipped.")
+                            skipped_count += 1
+                            continue
+
+                        if not category:
+                            messages.warning(request, f"Category '{cat_val}' not found for contestant '{name}'. Skipped.")
+                            skipped_count += 1
+                            continue
+
                         Contestant.objects.create(
                             name=name,
+                            student_class=s_class,
                             team=team,
-                            category=category,
+                            category=category
                         )
-                    except Team.DoesNotExist:
-                        messages.warning(request, f"Team '{team_name}' not found. Skipped {name}.")
-                    except Category.DoesNotExist:
-                        messages.warning(request, f"Category '{category_name}' not found. Skipped {name}.")
+                        created_count += 1
 
-                messages.success(request, "Bulk participant upload successful.")
-            except Exception as e:
-                messages.error(request, f"Error processing Excel: {e}")
+                    messages.success(request, f"Bulk upload completed: {created_count} participant(s) added successfully.")
+                except Exception as e:
+                    messages.error(request, f"Error processing Excel file: {e}")
 
-            return redirect('participant_list')
+            next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'participant_list'
+            return redirect(next_url)
 
+        # ---------------- 3. SINGLE ENTRY ----------------
         else:
             form = ContestantForm(request.POST)
             if form.is_valid():
-                form.save()
-                messages.success(request, "Participant added successfully.")
-                return redirect('participant_list')
+                contestant = form.save(commit=False)
+                if default_team:
+                    contestant.team = default_team
+                contestant.save()
+                messages.success(request, f"Participant '{contestant.name}' added successfully.")
+                next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'participant_list'
+                return redirect(next_url)
+            else:
+                messages.error(request, "Failed to add participant. Please check form inputs.")
     else:
         form = ContestantForm()
 
-    return render(request, 'participant_form.html', {'form': form})
+    teams = Team.objects.all()
+    categories = Category.objects.all()
+    return render(request, 'participant_form.html', {
+        'form': form,
+        'teams': teams,
+        'categories': categories,
+        'form_title': 'Add Participant'
+    })
 
+@login_required
+def download_participant_excel_template(request):
+    """Download pre-formatted Excel template for bulk student upload"""
+    import io
+    data = [
+        {'Name': 'John Doe', 'Class': '10 A', 'Team': 'Red House', 'Category': 'Sub Junior'},
+        {'Name': 'Jane Smith', 'Class': '12 B', 'Team': 'Blue House', 'Category': 'Senior'},
+        {'Name': 'Ahmad Ali', 'Class': '8 C', 'Team': 'Green House', 'Category': 'Junior'}
+    ]
+    df = pd.DataFrame(data)
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Participants')
+    
+    output.seek(0)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="student_import_template.xlsx"'
+    return response
+
+@login_required
 def edit_participant(request, id):
     participant = get_object_or_404(Contestant, id=id)
     if request.method == 'POST':
         form = ContestantForm(request.POST, instance=participant)
         if form.is_valid():
             form.save()
-            return redirect('participant_list')
+            messages.success(request, f"Updated participant '{participant.name}' details.")
+            next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'participant_list'
+            return redirect(next_url)
+        else:
+            messages.error(request, "Error updating participant details.")
     else:
         form = ContestantForm(instance=participant)
-    return render(request, 'participant_form.html', {'form': form})
+    
+    teams = Team.objects.all()
+    categories = Category.objects.all()
+    return render(request, 'participant_form.html', {
+        'form': form,
+        'participant': participant,
+        'teams': teams,
+        'categories': categories,
+        'form_title': 'Edit Participant'
+    })
 
+@login_required
 def delete_participant(request, id):
     participant = get_object_or_404(Contestant, id=id)
+    name = participant.name
     participant.delete()
-    return redirect('participant_list')
+    messages.success(request, f"Participant '{name}' deleted successfully.")
+    next_url = request.META.get('HTTP_REFERER') or 'participant_list'
+    return redirect(next_url)
 
 def participants_list(request):
     participants = Contestant.objects.select_related('team', 'category').order_by('chest_no')
