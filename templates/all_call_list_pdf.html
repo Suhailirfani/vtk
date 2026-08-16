@@ -54,7 +54,7 @@
                 {% for p in entry.participants %}
                     <tr>
                         <td>{{ p.chest_no }}</td>
-                        <td>{{ p.name|upper }}</td>
+                        <td>{{ p.display_name|upper }}</td>
                         <td>{{ entry.program.category.name }}</td>
                         {% if not is_team_user %}
                             <td>{{ p.team.name|upper }}</td>

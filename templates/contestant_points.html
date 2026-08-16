@@ -25,7 +25,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
                                 {% if cr.position == 1 %}🥇{% elif cr.position == 2 %}🥈{% elif cr.position == 3 %}🥉{% else %}{{ cr.position }}.{% endif %}
-                                {{ cr.contestant.name }} 
+                                {{ cr.contestant.display_name }} 
                                 <small>(Chest: {{ cr.contestant.chest_no }})</small>
                             </h5>
                             <div>

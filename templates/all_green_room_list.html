@@ -61,7 +61,7 @@
                             {% for p in item.participants %}
                                 <tr>
                                     <td>{{ p.chest_no }}</td>
-                                    <td>{{ p.name }}</td>
+                                    <td>{{ p.display_name }}</td>
                                     <td>{{ p.category.name }}</td>
                                     {% if not is_team_user %}
                                         <td>{{ p.team.name }}</td>

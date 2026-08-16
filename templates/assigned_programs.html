@@ -99,7 +99,7 @@
                                 {% for participation in participations %}
                                     <tr>
                                         <td class="text-muted">{{ forloop.counter }}</td>
-                                        <td class="fw-bold text-dark">{{ participation.contestant.name|upper }} <span class="badge bg-light text-secondary border ms-1">#{% if participation.contestant.chest_no %}{{ participation.contestant.chest_no }}{% endif %}</span></td>
+                                        <td class="fw-bold text-dark">{{ participation.contestant.display_name|upper }} <span class="badge bg-light text-secondary border ms-1">#{% if participation.contestant.chest_no %}{{ participation.contestant.chest_no }}{% endif %}</span></td>
                                         <td><span class="badge bg-light text-dark border px-2.5 py-1.5">{{ participation.contestant.team.name|upper }}</span></td>
                                         <td><span class="badge bg-secondary-subtle text-secondary-emphasis px-2.5 py-1.5">{{ participation.contestant.category.name|upper }}</span></td>
                                         <td class="fw-semibold text-primary">{{ participation.program.name|upper }}</td>

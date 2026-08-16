@@ -62,7 +62,7 @@
                     <div class="contestant-item" data-team="{{ contestant.team.id }}">
                         <input type="checkbox" name="contestants" value="{{ contestant.id }}" id="contestant_{{ contestant.id }}">
                         <label for="contestant_{{ contestant.id }}">
-                            {{ contestant.name }} ({{ contestant.team.name }}) - Chest No: {{ contestant.chest_no }}
+                            {{ contestant.display_name }} ({{ contestant.team.name }}) - Chest No: {{ contestant.chest_no }}
                         </label>
                     </div>
                 {% endfor %}

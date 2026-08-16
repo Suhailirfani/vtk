@@ -54,13 +54,13 @@
                                 <td>
                                     <div class="small">
                                         {% if group.captain %}
-                                            <span class="fw-bold text-warning-emphasis"><i class="fas fa-star text-warning me-1"></i>{{ group.captain.name|upper }}</span> (#{{ group.captain.chest_no }})<br>
+                                            <span class="fw-bold text-warning-emphasis"><i class="fas fa-star text-warning me-1"></i>{{ group.captain.display_name|upper }}</span> (#{{ group.captain.chest_no }})<br>
                                         {% endif %}
                                         <span class="text-muted">
                                             Members: 
                                             {% for contestant in group.contestants.all %}
                                                 {% if not group.captain or contestant.id != group.captain.id %}
-                                                    {{ contestant.name|upper }} (#{{ contestant.chest_no }}){% if not forloop.last %}, {% endif %}
+                                                    {{ contestant.display_name|upper }} (#{{ contestant.chest_no }}){% if not forloop.last %}, {% endif %}
                                                 {% endif %}
                                             {% endfor %}
                                         </span>

@@ -39,7 +39,7 @@
             {% for p in participations %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ p.contestant.name|upper }} (#{{ p.contestant.chest_no }})</td>
+                <td>{{ p.contestant.display_name|upper }} (#{{ p.contestant.chest_no }})</td>
                 <td>{{ p.contestant.team.name|upper }}</td>
                 <td>{{ p.contestant.category.name|upper }}</td>
                 <td>{{ p.program.name|upper }}</td>

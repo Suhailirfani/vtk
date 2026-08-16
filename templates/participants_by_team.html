@@ -35,7 +35,7 @@
                                     {% for participant in participants %}
                                         <tr>
                                             <td><strong>{{ participant.chest_no }}</strong></td>
-                                            <td>{{ participant.name }}</td>
+                                            <td>{{ participant.display_name }}</td>
                                             <td>
                                                 <small class="badge bg-secondary">{{ participant.category.name }}</small>
                                             </td>
@@ -85,7 +85,7 @@
                                         {% for participant in participants %}
                                             <tr>
                                                 <td><strong>{{ participant.chest_no }}</strong></td>
-                                                <td>{{ participant.name }}</td>
+                                                <td>{{ participant.display_name }}</td>
                                                 <td>
                                                     <span class="badge bg-info">{{ participant.category.name }}</span>
                                                 </td>

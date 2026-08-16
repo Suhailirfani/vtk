@@ -117,7 +117,16 @@ class Contestant(models.Model):
     total_points = models.IntegerField(default=0)
     
 
-    def __str__(self): return self.name
+    def __str__(self):
+        if self.student_class:
+            return f"{self.name} - {self.student_class}"
+        return self.name
+
+    @property
+    def display_name(self):
+        if self.student_class:
+            return f"{self.name} - {self.student_class}"
+        return self.name
 
     def save(self, *args, **kwargs):
         if not self.chest_no:
