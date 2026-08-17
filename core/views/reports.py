@@ -156,6 +156,75 @@ def download_category_participants_pdf(request):
         return HttpResponse('We had some errors <pre>' + html + '</pre>')
     return response
 
+class ReportParticipantRow:
+    def __init__(self, chest_no, display_name, team, time=None, code_letter=None, is_group=False):
+        self.chest_no = chest_no
+        self.display_name = display_name
+        self.team = team
+        self.time = time
+        self.code_letter = code_letter
+        self.is_group = is_group
+
+def get_program_report_participants(program, user_team=None):
+    """
+    Returns a list of ReportParticipantRow objects for reports (Call List, Green Room, Valuation Form).
+    For group programs, consolidates each group into 1 row with all team member names listed and '(c)' against captain name.
+    """
+    rows = []
+
+    if program.is_group:
+        gps = GroupParticipation.objects.filter(program=program).select_related('team', 'captain').prefetch_related('contestants')
+        if user_team:
+            gps = gps.filter(team=user_team)
+
+        for gp in gps.order_by('group_code', 'id'):
+            members = list(gp.contestants.all())
+
+            # Format names: Captain first with (c), then others
+            member_names = []
+            if gp.captain:
+                captain_name = f"{gp.captain.name} (c)"
+                if gp.captain.student_class:
+                    captain_name += f" - {gp.captain.student_class}"
+                member_names.append(captain_name)
+
+            for m in members:
+                if gp.captain and m.id == gp.captain.id:
+                    continue
+                m_name = m.name
+                if m.student_class:
+                    m_name += f" - {m.student_class}"
+                member_names.append(m_name)
+
+            combined_names = ", ".join(member_names) if member_names else (gp.group_name or f"Group {gp.group_code}")
+            chest_no = gp.group_code or (gp.captain.chest_no if gp.captain else f"G{gp.id}")
+
+            rows.append(ReportParticipantRow(
+                chest_no=chest_no,
+                display_name=combined_names,
+                team=gp.team,
+                time=getattr(gp, 'time', None),
+                code_letter=getattr(gp, 'code_letter', None),
+                is_group=True
+            ))
+    else:
+        participations = Participation.objects.filter(program=program).select_related('contestant', 'contestant__team')
+        if user_team:
+            participations = participations.filter(contestant__team=user_team)
+
+        for p in participations.order_by('contestant__chest_no'):
+            c = p.contestant
+            rows.append(ReportParticipantRow(
+                chest_no=c.chest_no,
+                display_name=c.display_name,
+                team=c.team,
+                time=getattr(p, 'time', None),
+                code_letter=getattr(p, 'code_letter', None),
+                is_group=False
+            ))
+
+    return rows
+
 @login_required
 def download_team_participants_pdf(request):
     user = request.user
