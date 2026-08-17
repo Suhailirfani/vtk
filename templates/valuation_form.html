@@ -171,7 +171,7 @@
             {% if is_team_user %} | <strong>Team:</strong> {{ team_name }}{% endif %}
         </div>
         <div>
-            <strong>Total Participants:</strong> {{ participants.count }}
+            <strong>Total Participants:</strong> {{ participants|length }}
         </div>
     </div>
 
@@ -208,7 +208,7 @@
             <!-- Add extra empty rows for additional entries -->
             {% for i in "12345" %}
             <tr>
-                <td><strong>{{ participants.count|add:forloop.counter }}</strong></td>
+                <td><strong>{{ participants|length|add:forloop.counter }}</strong></td>
                 <td class="chest-no"></td>
                 <td class="participant-name"></td>
                 <td class="code-letter"></td>

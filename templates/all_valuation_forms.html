@@ -59,6 +59,7 @@
                 <tr>
                     <th class="header-medium col-slno">Sl No</th>
                     <th class="header-medium col-chest">Chest No</th>
+                    <th class="header-medium col-name">Name</th>
                     <th class="header-medium col-code">Code <br> Letter</th>
                     <th class="header-small">Mark 1</th>
                     <th class="header-small">Mark 2</th>
@@ -72,6 +73,7 @@
                 <tr>
                     <td><strong>{{ forloop.counter }}</strong></td>
                     <td class="col-chest">{{ p.chest_no }}</td>
+                    <td class="col-name">{{ p.display_name|upper }}</td>
                     <td class="col-code"></td>
                     <td class="marks-col"></td>
                     <td class="marks-col"></td>

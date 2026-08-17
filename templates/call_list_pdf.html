@@ -192,7 +192,7 @@
         Program: <strong>{{ program.name|upper }}</strong><br>
         Category: <strong>{{ program.category.name|upper }}</strong><br>
         <strong>Date:</strong> {% now "F d, Y H:i A" %}<br>
-        Total Participants: <strong>{{ participants.count }}</strong><br>
+        Total Participants: <strong>{{ participants|length }}</strong><br>
         {% if is_team_user %}Team: <strong>{{ team_name|upper }}</strong><br>{% endif %}
         Venue: _________________________ &nbsp;&nbsp; Time: _________________________
     </div>

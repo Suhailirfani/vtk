@@ -48,8 +48,8 @@
                         {% for p in item.participants %}
                             <tr>
                                 <td style="width: 60px;">{{ p.chest_no }}</td>
-                                <td style="width: 150px;">{{ p.name }}</td>
-                                <td style="width: 90px;">{{ p.category.name }}</td>
+                                <td style="width: 150px;">{{ p.display_name|upper }}</td>
+                                <td style="width: 90px;">{{ item.program.category.name }}</td>
                                 {% if not is_team_user %}
                                     <td style="width: 150px;">{{ p.team.name }}</td>
                                 {% endif %}
