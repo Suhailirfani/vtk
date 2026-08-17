@@ -25,12 +25,24 @@ def manage_schedule(request):
     stages = Stage.objects.all().order_by('stage_type', 'name')
     programs = Program.objects.select_related('category', 'preferred_stage', 'schedule', 'schedule__fest_day', 'schedule__stage').all()
 
-    # Build count map of schedules per (fest_day_id, stage_id)
-    stage_counts_map = {}
+    # Build info map of schedules per (fest_day_id, stage_id) containing count and next_start_time
+    stage_info_map = {}
+    base_date = datetime.today().date()
     for day in fest_days:
         for st in stages:
-            cnt = ProgramSchedule.objects.filter(fest_day=day, stage=st).count()
-            stage_counts_map[f"{day.id}_{st.id}"] = cnt
+            schedules = ProgramSchedule.objects.filter(fest_day=day, stage=st).order_by('order', 'end_time')
+            cnt = schedules.count()
+            last_sched = schedules.last()
+            if last_sched:
+                last_end_dt = datetime.combine(base_date, last_sched.end_time)
+                next_start_time = (last_end_dt + timedelta(minutes=1)).time().strftime('%H:%M')
+            else:
+                next_start_time = day.start_time.strftime('%H:%M')
+
+            stage_info_map[f"{day.id}_{st.id}"] = {
+                'count': cnt,
+                'next_start_time': next_start_time
+            }
 
     # Pre-calculate assigned counts, duration, and default stage/order for each program
     program_list = []
@@ -44,24 +56,27 @@ def manage_schedule(request):
         if has_sched:
             scheduled_count += 1
 
-        # Determine default stage & order
+        # Determine default stage, order & start time
         if has_sched:
             default_stage_id = p.schedule.stage_id
             default_fest_day_id = p.schedule.fest_day_id
             default_order = p.schedule.order
+            default_start_time = p.schedule.start_time.strftime('%H:%M')
         elif p.preferred_stage_id:
             default_stage_id = p.preferred_stage_id
             default_fest_day_id = first_day_id
-            cnt = stage_counts_map.get(f"{default_fest_day_id}_{default_stage_id}", 0)
-            default_order = cnt + 1
+            st_info = stage_info_map.get(f"{default_fest_day_id}_{default_stage_id}", {'count': 0, 'next_start_time': '09:00'})
+            default_order = st_info['count'] + 1
+            default_start_time = st_info['next_start_time']
         else:
             suitable_stage = next((st for st in stages if st.stage_type == p.program_type), None)
             if not suitable_stage and stages.exists():
                 suitable_stage = stages.first()
             default_stage_id = suitable_stage.id if suitable_stage else None
             default_fest_day_id = first_day_id
-            cnt = stage_counts_map.get(f"{default_fest_day_id}_{default_stage_id}", 0) if (default_fest_day_id and default_stage_id) else 0
-            default_order = cnt + 1
+            st_info = stage_info_map.get(f"{default_fest_day_id}_{default_stage_id}", {'count': 0, 'next_start_time': '09:00'}) if (default_fest_day_id and default_stage_id) else {'count': 0, 'next_start_time': '09:00'}
+            default_order = st_info['count'] + 1
+            default_start_time = st_info['next_start_time']
 
         program_list.append({
             'program': p,
@@ -71,7 +86,8 @@ def manage_schedule(request):
             'schedule': p.schedule if has_sched else None,
             'default_stage_id': default_stage_id,
             'default_fest_day_id': default_fest_day_id,
-            'default_order': default_order
+            'default_order': default_order,
+            'default_start_time': default_start_time
         })
 
     clash_data = detect_all_clashes()
@@ -99,7 +115,7 @@ def manage_schedule(request):
         'scheduled_count': scheduled_count,
         'clash_data': clash_data,
         'timetable_by_day': timetable_by_day,
-        'stage_counts_json': json.dumps(stage_counts_map)
+        'stage_info_json': json.dumps(stage_info_map)
     }
     return render(request, 'manage_schedule.html', context)
 

@@ -30,7 +30,7 @@ def recalculate_stage_schedules(fest_day, stage):
     Recalculates start_time, end_time, and total_duration_minutes for all ProgramSchedules 
     on a given (fest_day, stage) in order of `order` (and `id`).
     - 1st program on stage (order=1) starting time is stage starting time (fest_day.start_time).
-    - Next program's starting time is after the previous program's ending time.
+    - Next program's starting time is 1 minute after the previous program's ending time.
     - Ending time is calculated by the total time of that program for all participants.
     """
     schedules = list(ProgramSchedule.objects.filter(fest_day=fest_day, stage=stage).order_by('order', 'start_time', 'id'))
@@ -45,15 +45,21 @@ def recalculate_stage_schedules(fest_day, stage):
         calc_mins = calculate_program_duration(sched.program)
         sched.total_duration_minutes = calc_mins
         
-        sched.start_time = current_time
+        if idx == 1:
+            if not sched.start_time:
+                sched.start_time = fest_day.start_time
+        else:
+            if not sched.start_time or sched.start_time < current_time:
+                sched.start_time = current_time
 
-        start_dt = datetime.combine(base_date, current_time)
+        start_dt = datetime.combine(base_date, sched.start_time)
         end_dt = start_dt + timedelta(minutes=calc_mins)
         sched.end_time = end_dt.time()
 
         sched.save(update_fields=['order', 'start_time', 'end_time', 'total_duration_minutes'])
 
-        current_time = sched.end_time
+        next_start_dt = end_dt + timedelta(minutes=1)
+        current_time = next_start_dt.time()
 
 def get_program_contestants(program):
     """Return a QuerySet or list of Contestant objects for a given program."""

@@ -277,7 +277,8 @@
                                             <div class="modal fade text-start" id="scheduleModal{{ item.program.id }}" tabindex="-1" aria-hidden="true" 
                                                  data-sched-day="{{ item.schedule.fest_day_id|default:'' }}" 
                                                  data-sched-stage="{{ item.schedule.stage_id|default:'' }}" 
-                                                 data-sched-order="{{ item.schedule.order|default:'' }}">
+                                                 data-sched-order="{{ item.schedule.order|default:'' }}"
+                                                 data-sched-start="{{ item.schedule.start_time|time:'H:i'|default:'' }}">
                                                 <div class="modal-dialog modal-dialog-centered">
                                                     <div class="modal-content rounded-4 border-0 shadow">
                                                         <form id="scheduleForm{{ item.program.id }}" action="{% url 'save_program_schedule' %}" method="POST" onsubmit="submitScheduleModalAJAX(event, {{ item.program.id }})">
@@ -324,8 +325,8 @@
                                                                         <input type="number" name="order" class="form-control rounded-3" value="{{ item.default_order|default:'1' }}" min="1" required title="Sequence order on stage">
                                                                     </div>
                                                                     <div class="col-8">
-                                                                        <label class="form-label fw-semibold">Start Time (For #1 or Custom)</label>
-                                                                        <input type="time" name="start_time" class="form-control rounded-3" value="{{ item.schedule.start_time|time:'H:i'|default:'09:00' }}">
+                                                                        <label class="form-label fw-semibold">Start Time</label>
+                                                                        <input type="time" name="start_time" class="form-control rounded-3" value="{{ item.default_start_time|default:'09:00' }}">
                                                                     </div>
                                                                 </div>
 
@@ -706,7 +707,7 @@ function updateClashCounters(count) {
     }
 }
 
-const stageCountsMap = {{ stage_counts_json|safe }};
+const stageInfoMap = {{ stage_info_json|safe }};
 
 function onModalStageOrDayChange(programId) {
     const modal = document.getElementById('scheduleModal' + programId);
@@ -714,6 +715,7 @@ function onModalStageOrDayChange(programId) {
     const daySelect = modal.querySelector('select[name="fest_day_id"]');
     const stageSelect = modal.querySelector('select[name="stage_id"]');
     const orderInput = modal.querySelector('input[name="order"]');
+    const startTimeInput = modal.querySelector('input[name="start_time"]');
     const warningDiv = document.getElementById('venueWarning' + programId);
 
     if (!daySelect || !stageSelect) return;
@@ -740,18 +742,25 @@ function onModalStageOrDayChange(programId) {
         }
     }
 
-    // 2. Order default: next to previous scheduled program
+    // 2. Order default & Next Start Time (previous program end time + 1 minute)
     const key = selectedDayId + '_' + selectedStageId;
-    const currentCount = stageCountsMap[key] || 0;
+    const stageInfo = stageInfoMap[key] || { count: 0, next_start_time: '09:00' };
 
     const schedDay = modal.getAttribute('data-sched-day');
     const schedStage = modal.getAttribute('data-sched-stage');
     const schedOrder = modal.getAttribute('data-sched-order');
+    const schedStart = modal.getAttribute('data-sched-start');
 
     if (schedDay === selectedDayId && schedStage === selectedStageId && schedOrder) {
         orderInput.value = schedOrder;
+        if (schedStart && startTimeInput) {
+            startTimeInput.value = schedStart;
+        }
     } else {
-        orderInput.value = currentCount + 1;
+        orderInput.value = stageInfo.count + 1;
+        if (startTimeInput) {
+            startTimeInput.value = stageInfo.next_start_time;
+        }
     }
 }
 
