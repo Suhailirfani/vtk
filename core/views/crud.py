@@ -900,24 +900,22 @@ def green_room_list(request, program_id):
         return HttpResponse('Program not found', status=404)
 
     user = request.user
-    participants = Contestant.objects.filter(
-        participation__program=program
-    ).select_related('team', 'category').order_by('chest_no')
-
-    if hasattr(user, 'team'):
-        participants = participants.filter(team=user.team)
+    user_team = user.team if hasattr(user, 'team') else None
+    from .reports import get_program_report_participants
+    participants = get_program_report_participants(program, user_team=user_team)
 
     context = {
         'program': program,
         'participants': participants,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     }
     return render(request, 'green_room_list.html', context)
 
 @login_required
 def all_green_room_lists(request):
     user = request.user
+    user_team = user.team if hasattr(user, 'team') else None
     category_id = request.GET.get('category') or request.GET.get('category_id')
     program_type = request.GET.get('program_type') or request.GET.get('type')
 
@@ -930,19 +928,9 @@ def all_green_room_lists(request):
     programs = programs.order_by('category__name', 'name')
     program_participants = []
 
+    from .reports import get_program_report_participants
     for program in programs:
-        if program.is_group:
-            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
-            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
-            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
-        else:
-            participants = Contestant.objects.filter(
-                participation__program=program
-            ).select_related('team', 'category').order_by('chest_no')
-
-        if hasattr(user, 'team'):
-            participants = participants.filter(team=user.team)
-
+        participants = get_program_report_participants(program, user_team=user_team)
         program_participants.append({
             'program': program,
             'participants': participants
@@ -956,7 +944,7 @@ def all_green_room_lists(request):
         'selected_category': str(category_id) if category_id else '',
         'selected_type': program_type if program_type else '',
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     }
     return render(request, 'all_green_room_list.html', context)
 

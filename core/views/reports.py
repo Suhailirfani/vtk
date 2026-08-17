@@ -204,13 +204,11 @@ def download_green_room_pdf(request, program_id):
         return HttpResponse('Program not found', status=404)
 
     user = request.user
-    participants = Contestant.objects.filter(
-        participation__program=program
-    ).select_related('team', 'category').order_by('chest_no')
+    user_team = user.team if hasattr(user, 'team') else None
+    participants = get_program_report_participants(program, user_team=user_team)
 
-    if hasattr(user, 'team'):
-        participants = participants.filter(team=user.team)
-        filename = f"{program.name}_{user.team.name}_green_room.pdf"
+    if user_team:
+        filename = f"{program.name}_{user_team.name}_green_room.pdf"
     else:
         filename = f"{program.name}_green_room.pdf"
 
@@ -220,7 +218,7 @@ def download_green_room_pdf(request, program_id):
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     })
 
     response = HttpResponse(content_type='application/pdf')
@@ -242,13 +240,11 @@ def download_call_list_pdf(request, program_id):
         return HttpResponse('Program not found', status=404)
 
     user = request.user
-    participants = Contestant.objects.filter(
-         participation__program=program
-    ).select_related('team', 'category').order_by('chest_no')
+    user_team = user.team if hasattr(user, 'team') else None
+    participants = get_program_report_participants(program, user_team=user_team)
 
-    if hasattr(user, 'team'):
-        participants = participants.filter(team=user.team)
-        filename = f"{program.name}_{user.team.name}_call_list.pdf"
+    if user_team:
+        filename = f"{program.name}_{user_team.name}_call_list.pdf"
     else:
         filename = f"{program.name}_call_list.pdf"
 
@@ -258,7 +254,7 @@ def download_call_list_pdf(request, program_id):
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     })
 
     response = HttpResponse(content_type='application/pdf')
@@ -280,13 +276,11 @@ def download_valuation_form_pdf(request, program_id):
         return HttpResponse('Program not found', status=404)
 
     user = request.user
-    participants = Contestant.objects.filter(
-         participation__program=program
-    ).select_related('team', 'category').order_by('chest_no')
+    user_team = user.team if hasattr(user, 'team') else None
+    participants = get_program_report_participants(program, user_team=user_team)
 
-    if hasattr(user, 'team'):
-        participants = participants.filter(team=user.team)
-        filename = f"{program.name}_{user.team.name}_valuation.pdf"
+    if user_team:
+        filename = f"{program.name}_{user_team.name}_valuation.pdf"
     else:
         filename = f"{program.name}_valuation.pdf"
 
@@ -296,7 +290,7 @@ def download_valuation_form_pdf(request, program_id):
         'participants': participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     })
 
     response = HttpResponse(content_type='application/pdf')
@@ -313,6 +307,7 @@ def download_valuation_form_pdf(request, program_id):
 @login_required
 def download_all_call_lists_pdf(request):
     user = request.user
+    user_team = user.team if hasattr(user, 'team') else None
     category_id = request.GET.get('category') or request.GET.get('category_id')
     program_type = request.GET.get('program_type') or request.GET.get('type')
 
@@ -326,18 +321,7 @@ def download_all_call_lists_pdf(request):
 
     program_participants = []
     for program in programs:
-        if program.is_group:
-            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
-            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
-            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
-        else:
-            participants = Contestant.objects.filter(
-                participation__program=program
-            ).select_related('team', 'category').order_by('chest_no')
-
-        if hasattr(user, 'team'):
-            participants = participants.filter(team=user.team)
-
+        participants = get_program_report_participants(program, user_team=user_team)
         program_participants.append({
             'program': program,
             'participants': participants
@@ -353,8 +337,8 @@ def download_all_call_lists_pdf(request):
 
     filter_str = f"_{'_'.join(filter_parts)}" if filter_parts else ""
 
-    if hasattr(user, 'team'):
-        filename = f"all_programs_{user.team.name}_call_list{filter_str}.pdf"
+    if user_team:
+        filename = f"all_programs_{user_team.name}_call_list{filter_str}.pdf"
     else:
         filename = f"all_programs_call_list{filter_str}.pdf"
 
@@ -363,7 +347,7 @@ def download_all_call_lists_pdf(request):
         'program_participants': program_participants,
         'user': user,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     })
 
     response = HttpResponse(content_type='application/pdf')
@@ -380,6 +364,7 @@ def download_all_call_lists_pdf(request):
 @login_required
 def download_all_green_room_pdf(request):
     user = request.user
+    user_team = user.team if hasattr(user, 'team') else None
     category_id = request.GET.get('category') or request.GET.get('category_id')
     program_type = request.GET.get('program_type') or request.GET.get('type')
 
@@ -393,18 +378,7 @@ def download_all_green_room_pdf(request):
 
     program_participants = []
     for program in programs:
-        if program.is_group:
-            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
-            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
-            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
-        else:
-            participants = Contestant.objects.filter(
-                participation__program=program
-            ).select_related('team', 'category').order_by('chest_no')
-
-        if hasattr(user, 'team'):
-            participants = participants.filter(team=user.team)
-
+        participants = get_program_report_participants(program, user_team=user_team)
         program_participants.append({
             'program': program,
             'participants': participants
@@ -420,8 +394,8 @@ def download_all_green_room_pdf(request):
 
     filter_str = f"_{'_'.join(filter_parts)}" if filter_parts else ""
 
-    if hasattr(user, 'team'):
-        filename = f"all_green_room_{user.team.name}{filter_str}.pdf"
+    if user_team:
+        filename = f"all_green_room_{user_team.name}{filter_str}.pdf"
     else:
         filename = f"all_green_room{filter_str}.pdf"
 
@@ -429,7 +403,7 @@ def download_all_green_room_pdf(request):
     context = get_pdf_base_context({
         'program_participants': program_participants,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     })
 
     response = HttpResponse(content_type='application/pdf')
@@ -446,6 +420,7 @@ def download_all_green_room_pdf(request):
 @login_required
 def download_all_valuation_forms_pdf(request):
     user = request.user
+    user_team = user.team if hasattr(user, 'team') else None
     category_id = request.GET.get('category') or request.GET.get('category_id')
     program_type = request.GET.get('program_type') or request.GET.get('type')
 
@@ -459,18 +434,7 @@ def download_all_valuation_forms_pdf(request):
     program_participants = []
 
     for program in programs:
-        if program.is_group:
-            gps = GroupParticipation.objects.filter(program=program).prefetch_related('contestants', 'team')
-            c_ids = [c.id for gp in gps for c in gp.contestants.all()]
-            participants = Contestant.objects.filter(id__in=c_ids).select_related('team', 'category').order_by('chest_no')
-        else:
-            participants = Contestant.objects.filter(
-                participation__program=program
-            ).select_related('team', 'category').order_by('chest_no')
-
-        if hasattr(user, 'team'):
-            participants = participants.filter(team=user.team)
-
+        participants = get_program_report_participants(program, user_team=user_team)
         program_participants.append({
             'program': program,
             'participants': participants
@@ -486,8 +450,8 @@ def download_all_valuation_forms_pdf(request):
 
     filter_str = f"_{'_'.join(filter_parts)}" if filter_parts else ""
 
-    if hasattr(user, 'team'):
-        filename = f"all_programs_{user.team.name}_valuation{filter_str}.pdf"
+    if user_team:
+        filename = f"all_programs_{user_team.name}_valuation{filter_str}.pdf"
     else:
         filename = f"all_programs_valuation{filter_str}.pdf"
 
@@ -495,7 +459,7 @@ def download_all_valuation_forms_pdf(request):
     context = get_pdf_base_context({
         'program_participants': program_participants,
         'is_team_user': hasattr(user, 'team'),
-        'team_name': user.team.name if hasattr(user, 'team') else None
+        'team_name': user_team.name if user_team else None
     })
 
     response = HttpResponse(content_type='application/pdf')
