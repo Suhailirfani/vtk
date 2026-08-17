@@ -131,8 +131,23 @@
                                         {% for s in st_col.schedules %}
                                             <div class="card border-0 shadow-sm rounded-3 p-2 mb-2 bg-white timetable-program-card">
                                                 <div class="d-flex justify-content-between align-items-center">
-                                                    <strong class="text-dark small program-name">{{ s.program.name }}</strong>
-                                                    <span class="badge bg-info text-dark category-badge" style="font-size: 0.65rem;">{{ s.program.category.name }}</span>
+                                                    <div>
+                                                        <span class="badge bg-primary text-white me-1" style="font-size: 0.7rem;">#{{ s.order }}</span>
+                                                        <strong class="text-dark small program-name">{{ s.program.name }}</strong>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <span class="badge bg-info text-dark category-badge me-1" style="font-size: 0.65rem;">{{ s.program.category.name }}</span>
+                                                        <form action="{% url 'reorder_program_schedule' s.id %}" method="POST" class="d-inline">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="direction" value="up">
+                                                            <button type="submit" class="btn btn-link btn-sm p-0 text-muted" title="Move Up"><i class="fas fa-chevron-up"></i></button>
+                                                        </form>
+                                                        <form action="{% url 'reorder_program_schedule' s.id %}" method="POST" class="d-inline">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="direction" value="down">
+                                                            <button type="submit" class="btn btn-link btn-sm p-0 text-muted" title="Move Down"><i class="fas fa-chevron-down"></i></button>
+                                                        </form>
+                                                    </div>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.75rem;">
                                                     <span><i class="far fa-clock text-warning me-1"></i> {{ s.start_time|time:"h:i A" }} - {{ s.end_time|time:"h:i A" }}</span>
@@ -240,7 +255,7 @@
                                             {% if item.has_schedule %}
                                                 <span class="badge bg-success-subtle text-success border border-success px-2 py-1 rounded-2">
                                                     Day {{ item.schedule.fest_day.day_number }} @ {{ item.schedule.stage.name }}
-                                                    ({{ item.schedule.start_time|time:"h:i A" }} - {{ item.schedule.end_time|time:"h:i A" }})
+                                                    (#{{ item.schedule.order }}: {{ item.schedule.start_time|time:"h:i A" }} - {{ item.schedule.end_time|time:"h:i A" }})
                                                 </span>
                                             {% else %}
                                                 <span class="badge bg-light text-muted border">Unscheduled</span>
@@ -294,18 +309,18 @@
                                                                 </div>
 
                                                                 <div class="row g-2 mb-3">
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold">Start Time</label>
-                                                                        <input type="time" name="start_time" class="form-control rounded-3" value="{{ item.schedule.start_time|time:'H:i'|default:'09:00' }}" required>
+                                                                    <div class="col-4">
+                                                                        <label class="form-label fw-semibold">Order #</label>
+                                                                        <input type="number" name="order" class="form-control rounded-3" value="{{ item.schedule.order|default:'1' }}" min="1" required title="Sequence order on stage">
                                                                     </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold">End Time (Optional)</label>
-                                                                        <input type="time" name="end_time" class="form-control rounded-3" value="{{ item.schedule.end_time|time:'H:i'|default:'' }}" placeholder="Auto-calculated if blank">
+                                                                    <div class="col-8">
+                                                                        <label class="form-label fw-semibold">Start Time (For #1 or Custom)</label>
+                                                                        <input type="time" name="start_time" class="form-control rounded-3" value="{{ item.schedule.start_time|time:'H:i'|default:'09:00' }}">
                                                                     </div>
                                                                 </div>
 
                                                                 <div class="alert alert-info rounded-3 small mb-0">
-                                                                    <i class="fas fa-info-circle me-1"></i> Auto-calculated duration: <strong id="modalCalcDur{{ item.program.id }}">{{ item.calculated_duration }} minutes</strong>.
+                                                                    <i class="fas fa-info-circle me-1"></i> Order #1 starts at Stage Start Time. Order #2+ starts automatically after previous program's end time. Calculated total program duration: <strong id="modalCalcDur{{ item.program.id }}">{{ item.calculated_duration }} mins</strong>.
                                                                 </div>
                                                             </div>
                                                             <div class="modal-footer border-0 pt-0">

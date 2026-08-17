@@ -25,6 +25,36 @@ def calculate_program_duration(program):
         duration = (count * program.duration_per_participant) + (program.buffer_margin_minutes or 0)
     return max(duration, 5)  # Minimum 5 minutes
 
+def recalculate_stage_schedules(fest_day, stage):
+    """
+    Recalculates start_time, end_time, and total_duration_minutes for all ProgramSchedules 
+    on a given (fest_day, stage) in order of `order` (and `id`).
+    - 1st program on stage (order=1) starting time is stage starting time (fest_day.start_time).
+    - Next program's starting time is after the previous program's ending time.
+    - Ending time is calculated by the total time of that program for all participants.
+    """
+    schedules = list(ProgramSchedule.objects.filter(fest_day=fest_day, stage=stage).order_by('order', 'start_time', 'id'))
+    if not schedules:
+        return
+
+    current_time = fest_day.start_time
+    base_date = datetime.today().date()
+
+    for idx, sched in enumerate(schedules, start=1):
+        sched.order = idx
+        calc_mins = calculate_program_duration(sched.program)
+        sched.total_duration_minutes = calc_mins
+        
+        sched.start_time = current_time
+
+        start_dt = datetime.combine(base_date, current_time)
+        end_dt = start_dt + timedelta(minutes=calc_mins)
+        sched.end_time = end_dt.time()
+
+        sched.save(update_fields=['order', 'start_time', 'end_time', 'total_duration_minutes'])
+
+        current_time = sched.end_time
+
 def get_program_contestants(program):
     """Return a QuerySet or list of Contestant objects for a given program."""
     if program.is_group:
@@ -261,6 +291,11 @@ def generate_smart_auto_schedule(buffer_between_programs_mins=5):
 
         if not is_placed:
             skipped_programs.append(program.name)
+
+    # Recalculate orders and time chains for all stages
+    for day in fest_days:
+        for st in stages:
+            recalculate_stage_schedules(day, st)
 
     return {
         'scheduled_count': scheduled_count,

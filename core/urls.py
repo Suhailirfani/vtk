@@ -138,6 +138,7 @@ urlpatterns = [
     path('schedule/program-config/<int:program_id>/', views.update_program_duration, name='update_program_duration'),
     path('schedule/save/', views.save_program_schedule, name='save_program_schedule'),
     path('schedule/delete/<int:schedule_id>/', views.delete_program_schedule, name='delete_program_schedule'),
+    path('schedule/reorder/<int:schedule_id>/', views.reorder_program_schedule, name='reorder_program_schedule'),
     path('schedule/auto-generate/', views.run_auto_scheduler, name='run_auto_scheduler'),
     path('schedule/clear-all/', views.clear_all_schedules, name='clear_all_schedules'),
     path('schedule/clashes/', views.view_clashes, name='view_clashes'),

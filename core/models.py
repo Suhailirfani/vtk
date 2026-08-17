@@ -302,12 +302,13 @@ class ProgramSchedule(models.Model):
     program = models.OneToOneField(Program, on_delete=models.CASCADE, related_name='schedule')
     fest_day = models.ForeignKey(FestDay, on_delete=models.CASCADE, related_name='schedules')
     stage = models.ForeignKey(Stage, on_delete=models.CASCADE, related_name='schedules')
+    order = models.PositiveIntegerField(default=1, help_text="Order/sequence of the program on this stage for the day")
     start_time = models.TimeField()
     end_time = models.TimeField()
     total_duration_minutes = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ['fest_day__day_number', 'start_time']
+        ordering = ['fest_day__day_number', 'stage', 'order', 'start_time']
 
     def __str__(self):
         return f"{self.program.name} ({self.fest_day} @ {self.stage.name}: {self.start_time.strftime('%I:%M %p')} - {self.end_time.strftime('%I:%M %p')})"

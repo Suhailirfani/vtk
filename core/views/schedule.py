@@ -3,12 +3,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.db.models import Max
 from core.models import Program, FestDay, Stage, ProgramSchedule
 from core.schedule_utils import (
     get_program_assigned_count,
     calculate_program_duration,
     detect_all_clashes,
-    generate_smart_auto_schedule
+    generate_smart_auto_schedule,
+    recalculate_stage_schedules
 )
 
 @login_required
@@ -46,7 +48,7 @@ def manage_schedule(request):
     for day in fest_days:
         day_stages = []
         for stage in stages:
-            schedules = ProgramSchedule.objects.filter(fest_day=day, stage=stage).select_related('program', 'program__category').order_by('start_time')
+            schedules = ProgramSchedule.objects.filter(fest_day=day, stage=stage).select_related('program', 'program__category').order_by('order', 'start_time')
             day_stages.append({
                 'stage': stage,
                 'schedules': schedules
@@ -176,10 +178,7 @@ def update_program_duration(request, program_id):
     # Update active schedule end_time & total_duration_minutes if schedule exists
     if hasattr(program, 'schedule') and program.schedule is not None:
         sched = program.schedule
-        sched.total_duration_minutes = calc_dur
-        s_dt = datetime.combine(datetime.today(), sched.start_time)
-        sched.end_time = (s_dt + timedelta(minutes=calc_dur)).time()
-        sched.save()
+        recalculate_stage_schedules(sched.fest_day, sched.stage)
 
     clash_data = detect_all_clashes()
 
@@ -205,51 +204,68 @@ def save_program_schedule(request):
     program_id = request.POST.get('program_id')
     fest_day_id = request.POST.get('fest_day_id')
     stage_id = request.POST.get('stage_id')
+    order_val = request.POST.get('order')
     start_time_str = request.POST.get('start_time')
-    end_time_str = request.POST.get('end_time')
 
-    if program_id and fest_day_id and stage_id and start_time_str:
+    if program_id and fest_day_id and stage_id:
         program = get_object_or_404(Program, id=program_id)
         fest_day = get_object_or_404(FestDay, id=fest_day_id)
         stage = get_object_or_404(Stage, id=stage_id)
 
-        try:
-            start_t = datetime.strptime(start_time_str, '%H:%M').time()
-        except ValueError:
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1':
-                return JsonResponse({'status': 'error', 'message': 'Invalid start time format.'}, status=400)
-            messages.error(request, "Invalid start time format.")
-            return redirect('manage_schedule')
+        old_day = None
+        old_stage = None
+        if hasattr(program, 'schedule') and program.schedule is not None:
+            old_day = program.schedule.fest_day
+            old_stage = program.schedule.stage
+
+        # Determine target order
+        if order_val and str(order_val).isdigit():
+            target_order = int(order_val)
+        else:
+            if hasattr(program, 'schedule') and program.schedule is not None and program.schedule.fest_day_id == fest_day.id and program.schedule.stage_id == stage.id:
+                target_order = program.schedule.order
+            else:
+                max_ord = ProgramSchedule.objects.filter(fest_day=fest_day, stage=stage).aggregate(Max('order'))['order__max']
+                target_order = (max_ord or 0) + 1
 
         calc_mins = calculate_program_duration(program)
 
-        if end_time_str:
+        if start_time_str:
             try:
-                end_t = datetime.strptime(end_time_str, '%H:%M').time()
+                start_t = datetime.strptime(start_time_str, '%H:%M').time()
             except ValueError:
-                end_t = (datetime.combine(datetime.today(), start_t) + timedelta(minutes=calc_mins)).time()
+                start_t = fest_day.start_time
         else:
-            end_t = (datetime.combine(datetime.today(), start_t) + timedelta(minutes=calc_mins)).time()
+            start_t = fest_day.start_time
+
+        end_t = (datetime.combine(datetime.today(), start_t) + timedelta(minutes=calc_mins)).time()
 
         sched, created = ProgramSchedule.objects.update_or_create(
             program=program,
             defaults={
                 'fest_day': fest_day,
                 'stage': stage,
+                'order': target_order,
                 'start_time': start_t,
                 'end_time': end_t,
                 'total_duration_minutes': calc_mins
             }
         )
 
+        recalculate_stage_schedules(fest_day, stage)
+        if old_day and old_stage and (old_day.id != fest_day.id or old_stage.id != stage.id):
+            recalculate_stage_schedules(old_day, old_stage)
+
+        sched.refresh_from_db()
         clash_data = detect_all_clashes()
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1':
-            slot_text = f"Day {fest_day.day_number} @ {stage.name} ({start_t.strftime('%I:%M %p')} - {end_t.strftime('%I:%M %p')})"
+            slot_text = f"Day {fest_day.day_number} @ {stage.name} (#{sched.order}: {sched.start_time.strftime('%I:%M %p')} - {sched.end_time.strftime('%I:%M %p')})"
             return JsonResponse({
                 'status': 'success',
                 'program_id': program.id,
                 'schedule_id': sched.id,
+                'order': sched.order,
                 'slot_text': slot_text,
                 'total_clashes': clash_data['total_clash_count']
             })
@@ -268,8 +284,11 @@ def delete_program_schedule(request, schedule_id):
     sched = get_object_or_404(ProgramSchedule, id=schedule_id)
     prog_id = sched.program_id
     prog_name = sched.program.name
+    old_day = sched.fest_day
+    old_stage = sched.stage
     sched.delete()
 
+    recalculate_stage_schedules(old_day, old_stage)
     clash_data = detect_all_clashes()
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1':
@@ -280,6 +299,47 @@ def delete_program_schedule(request, schedule_id):
         })
 
     messages.success(request, f"Schedule for '{prog_name}' removed.")
+    return redirect('manage_schedule')
+
+@login_required
+def reorder_program_schedule(request, schedule_id):
+    if request.user.role != 'admin' or request.method != 'POST':
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1':
+            return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
+        return redirect('manage_schedule')
+
+    sched = get_object_or_404(ProgramSchedule, id=schedule_id)
+    direction = request.POST.get('direction')
+
+    schedules = list(ProgramSchedule.objects.filter(fest_day=sched.fest_day, stage=sched.stage).order_by('order', 'start_time', 'id'))
+
+    current_idx = None
+    for idx, s in enumerate(schedules):
+        if s.id == sched.id:
+            current_idx = idx
+            break
+
+    if current_idx is not None:
+        if direction == 'up' and current_idx > 0:
+            schedules[current_idx], schedules[current_idx - 1] = schedules[current_idx - 1], schedules[current_idx]
+        elif direction == 'down' and current_idx < len(schedules) - 1:
+            schedules[current_idx], schedules[current_idx + 1] = schedules[current_idx + 1], schedules[current_idx]
+
+        for i, s in enumerate(schedules, start=1):
+            s.order = i
+            s.save(update_fields=['order'])
+
+        recalculate_stage_schedules(sched.fest_day, sched.stage)
+
+    clash_data = detect_all_clashes()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('is_ajax') == '1':
+        return JsonResponse({
+            'status': 'success',
+            'total_clashes': clash_data['total_clash_count']
+        })
+
+    messages.success(request, f"Reordered schedule for '{sched.program.name}'.")
     return redirect('manage_schedule')
 
 @login_required
