@@ -19,13 +19,24 @@ def manage_schedule(request):
         messages.error(request, "Access denied. Admin privileges required.")
         return redirect('face_page')
 
+    import json
+
     fest_days = FestDay.objects.all().order_by('day_number')
     stages = Stage.objects.all().order_by('stage_type', 'name')
-    programs = Program.objects.select_related('category', 'schedule', 'schedule__fest_day', 'schedule__stage').all()
+    programs = Program.objects.select_related('category', 'preferred_stage', 'schedule', 'schedule__fest_day', 'schedule__stage').all()
 
-    # Pre-calculate assigned counts & duration for each program
+    # Build count map of schedules per (fest_day_id, stage_id)
+    stage_counts_map = {}
+    for day in fest_days:
+        for st in stages:
+            cnt = ProgramSchedule.objects.filter(fest_day=day, stage=st).count()
+            stage_counts_map[f"{day.id}_{st.id}"] = cnt
+
+    # Pre-calculate assigned counts, duration, and default stage/order for each program
     program_list = []
     scheduled_count = 0
+    first_day_id = fest_days.first().id if fest_days.exists() else None
+
     for p in programs:
         assigned_count = get_program_assigned_count(p)
         calc_dur = calculate_program_duration(p)
@@ -33,12 +44,34 @@ def manage_schedule(request):
         if has_sched:
             scheduled_count += 1
 
+        # Determine default stage & order
+        if has_sched:
+            default_stage_id = p.schedule.stage_id
+            default_fest_day_id = p.schedule.fest_day_id
+            default_order = p.schedule.order
+        elif p.preferred_stage_id:
+            default_stage_id = p.preferred_stage_id
+            default_fest_day_id = first_day_id
+            cnt = stage_counts_map.get(f"{default_fest_day_id}_{default_stage_id}", 0)
+            default_order = cnt + 1
+        else:
+            suitable_stage = next((st for st in stages if st.stage_type == p.program_type), None)
+            if not suitable_stage and stages.exists():
+                suitable_stage = stages.first()
+            default_stage_id = suitable_stage.id if suitable_stage else None
+            default_fest_day_id = first_day_id
+            cnt = stage_counts_map.get(f"{default_fest_day_id}_{default_stage_id}", 0) if (default_fest_day_id and default_stage_id) else 0
+            default_order = cnt + 1
+
         program_list.append({
             'program': p,
             'assigned_count': assigned_count,
             'calculated_duration': calc_dur,
             'has_schedule': has_sched,
-            'schedule': p.schedule if has_sched else None
+            'schedule': p.schedule if has_sched else None,
+            'default_stage_id': default_stage_id,
+            'default_fest_day_id': default_fest_day_id,
+            'default_order': default_order
         })
 
     clash_data = detect_all_clashes()
@@ -65,7 +98,8 @@ def manage_schedule(request):
         'total_programs': len(programs),
         'scheduled_count': scheduled_count,
         'clash_data': clash_data,
-        'timetable_by_day': timetable_by_day
+        'timetable_by_day': timetable_by_day,
+        'stage_counts_json': json.dumps(stage_counts_map)
     }
     return render(request, 'manage_schedule.html', context)
 

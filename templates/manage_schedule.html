@@ -274,7 +274,10 @@
                                             </div>
 
                                             <!-- Individual Program Schedule Modal -->
-                                            <div class="modal fade text-start" id="scheduleModal{{ item.program.id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal fade text-start" id="scheduleModal{{ item.program.id }}" tabindex="-1" aria-hidden="true" 
+                                                 data-sched-day="{{ item.schedule.fest_day_id|default:'' }}" 
+                                                 data-sched-stage="{{ item.schedule.stage_id|default:'' }}" 
+                                                 data-sched-order="{{ item.schedule.order|default:'' }}">
                                                 <div class="modal-dialog modal-dialog-centered">
                                                     <div class="modal-content rounded-4 border-0 shadow">
                                                         <form id="scheduleForm{{ item.program.id }}" action="{% url 'save_program_schedule' %}" method="POST" onsubmit="submitScheduleModalAJAX(event, {{ item.program.id }})">
@@ -286,11 +289,15 @@
                                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                             </div>
                                                             <div class="modal-body py-3">
+                                                                <!-- Venue Mismatch Warning Alert -->
+                                                                <div id="venueWarning{{ item.program.id }}" class="alert alert-warning rounded-3 small mb-3 d-none">
+                                                                </div>
+
                                                                 <div class="mb-3">
                                                                     <label class="form-label fw-semibold">Fest Day</label>
-                                                                    <select name="fest_day_id" class="form-select rounded-3" required>
+                                                                    <select name="fest_day_id" class="form-select rounded-3" onchange="onModalStageOrDayChange({{ item.program.id }})" required>
                                                                         {% for d in fest_days %}
-                                                                            <option value="{{ d.id }}" {% if item.has_schedule and item.schedule.fest_day_id == d.id %}selected{% endif %}>
+                                                                            <option value="{{ d.id }}" {% if item.has_schedule and item.schedule.fest_day_id == d.id %}selected{% elif not item.has_schedule and item.default_fest_day_id == d.id %}selected{% endif %}>
                                                                                 Day {{ d.day_number }} {% if d.name %}({{ d.name }}){% endif %} [{{ d.start_time|time:"h:i A" }} - {{ d.end_time|time:"h:i A" }}]
                                                                             </option>
                                                                         {% endfor %}
@@ -299,10 +306,13 @@
 
                                                                 <div class="mb-3">
                                                                     <label class="form-label fw-semibold">Venue / Stage</label>
-                                                                    <select name="stage_id" class="form-select rounded-3" required>
+                                                                    <select name="stage_id" class="form-select rounded-3" data-program-type="{{ item.program.program_type }}" onchange="onModalStageOrDayChange({{ item.program.id }})" required>
                                                                         {% for st in stages %}
-                                                                            <option value="{{ st.id }}" {% if item.has_schedule and item.schedule.stage_id == st.id %}selected{% endif %}>
-                                                                                {{ st.name }} [{{ st.get_stage_type_display }}]
+                                                                            <option value="{{ st.id }}" data-stage-type="{{ st.stage_type }}"
+                                                                                {% if item.has_schedule and item.schedule.stage_id == st.id %}selected
+                                                                                {% elif not item.has_schedule and item.default_stage_id == st.id %}selected
+                                                                                {% endif %}>
+                                                                                {{ st.name }} [{{ st.get_stage_type_display }}]{% if item.program.preferred_stage_id == st.id %} ⭐ (Preferred Stage){% endif %}
                                                                             </option>
                                                                         {% endfor %}
                                                                     </select>
@@ -311,7 +321,7 @@
                                                                 <div class="row g-2 mb-3">
                                                                     <div class="col-4">
                                                                         <label class="form-label fw-semibold">Order #</label>
-                                                                        <input type="number" name="order" class="form-control rounded-3" value="{{ item.schedule.order|default:'1' }}" min="1" required title="Sequence order on stage">
+                                                                        <input type="number" name="order" class="form-control rounded-3" value="{{ item.default_order|default:'1' }}" min="1" required title="Sequence order on stage">
                                                                     </div>
                                                                     <div class="col-8">
                                                                         <label class="form-label fw-semibold">Start Time (For #1 or Custom)</label>
@@ -320,7 +330,7 @@
                                                                 </div>
 
                                                                 <div class="alert alert-info rounded-3 small mb-0">
-                                                                    <i class="fas fa-info-circle me-1"></i> Order #1 starts at Stage Start Time. Order #2+ starts automatically after previous program's end time. Calculated total program duration: <strong id="modalCalcDur{{ item.program.id }}">{{ item.calculated_duration }} mins</strong>.
+                                                                    <i class="fas fa-info-circle me-1"></i> Order #1 starts at Stage Start Time. Order #2+ starts automatically after previous program's end time. Total duration: <strong id="modalCalcDur{{ item.program.id }}">{{ item.calculated_duration }} mins</strong>.
                                                                 </div>
                                                             </div>
                                                             <div class="modal-footer border-0 pt-0">
@@ -695,5 +705,65 @@ function updateClashCounters(count) {
         if (alertBox) alertBox.classList.add('d-none');
     }
 }
+
+const stageCountsMap = {{ stage_counts_json|safe }};
+
+function onModalStageOrDayChange(programId) {
+    const modal = document.getElementById('scheduleModal' + programId);
+    if (!modal) return;
+    const daySelect = modal.querySelector('select[name="fest_day_id"]');
+    const stageSelect = modal.querySelector('select[name="stage_id"]');
+    const orderInput = modal.querySelector('input[name="order"]');
+    const warningDiv = document.getElementById('venueWarning' + programId);
+
+    if (!daySelect || !stageSelect) return;
+
+    const selectedDayId = daySelect.value;
+    const selectedStageOption = stageSelect.options[stageSelect.selectedIndex];
+    const selectedStageId = stageSelect.value;
+    const selectedStageType = selectedStageOption ? selectedStageOption.dataset.stageType : '';
+    const programType = stageSelect.dataset.programType;
+
+    // 1. Clash reminder: Check venue mismatch
+    if (selectedStageType && programType && selectedStageType !== programType) {
+        if (warningDiv) {
+            warningDiv.classList.remove('d-none');
+            const progTypeName = programType === 'STAGE' ? 'Stage Venue' : 'Off-Stage Venue';
+            const selTypeName = selectedStageType === 'STAGE' ? 'Stage Venue' : 'Off-Stage Venue';
+            const venueName = selectedStageOption ? selectedStageOption.text.split('[')[0].trim() : '';
+            warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i> <strong>Venue Mismatch Clash Warning:</strong> This program is categorized as <strong>${progTypeName}</strong>, but you selected an <strong>${selTypeName}</strong> (${venueName}).`;
+        }
+    } else {
+        if (warningDiv) {
+            warningDiv.classList.add('d-none');
+            warningDiv.innerHTML = '';
+        }
+    }
+
+    // 2. Order default: next to previous scheduled program
+    const key = selectedDayId + '_' + selectedStageId;
+    const currentCount = stageCountsMap[key] || 0;
+
+    const schedDay = modal.getAttribute('data-sched-day');
+    const schedStage = modal.getAttribute('data-sched-stage');
+    const schedOrder = modal.getAttribute('data-sched-order');
+
+    if (schedDay === selectedDayId && schedStage === selectedStageId && schedOrder) {
+        orderInput.value = schedOrder;
+    } else {
+        orderInput.value = currentCount + 1;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('shown.bs.modal', function () {
+            const progIdMatch = this.id.match(/scheduleModal(\d+)/);
+            if (progIdMatch) {
+                onModalStageOrDayChange(progIdMatch[1]);
+            }
+        });
+    });
+});
 </script>
 {% endblock %}
