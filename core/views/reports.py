@@ -177,7 +177,7 @@ def get_program_report_participants(program, user_team=None):
         if user_team:
             gps = gps.filter(team=user_team)
 
-        for gp in gps.order_by('group_code', 'id'):
+        for idx, gp in enumerate(gps.order_by('id'), start=1):
             members = list(gp.contestants.all())
 
             # Format names: Captain first with (c), then others
@@ -196,8 +196,8 @@ def get_program_report_participants(program, user_team=None):
                     m_name += f" - {m.student_class}"
                 member_names.append(m_name)
 
-            combined_names = ", ".join(member_names) if member_names else (gp.group_name or f"Group {gp.group_code}")
-            chest_no = gp.group_code or (gp.captain.chest_no if gp.captain else f"G{gp.id}")
+            combined_names = ", ".join(member_names) if member_names else (gp.group_name or f"Group {idx}")
+            chest_no = gp.code_letter or (gp.captain.chest_no if gp.captain else f"G{gp.id}")
 
             rows.append(ReportParticipantRow(
                 chest_no=chest_no,
