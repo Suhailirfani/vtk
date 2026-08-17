@@ -8,7 +8,30 @@
             <h2 class="fw-bold text-white mb-1"><i class="fas fa-calendar-alt text-info me-2"></i> Fest Schedule & Clash Manager</h2>
             <p class="text-muted small mb-0">Manage fest timetables, venue operating hours, stage priorities, and program durations seamlessly.</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
+            <!-- PDF Download Dropdown -->
+            <div class="dropdown d-inline">
+                <button class="btn btn-danger fw-bold rounded-pill px-3 shadow-sm dropdown-toggle" type="button" id="downloadPdfDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-file-pdf me-1"></i> Download Schedule PDF
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end rounded-3 shadow border-0" aria-labelledby="downloadPdfDropdown">
+                    <li><h6 class="dropdown-header text-primary fw-bold">Full Schedule</h6></li>
+                    <li>
+                        <a class="dropdown-item fw-bold" href="{% url 'download_schedule_pdf' %}" target="_blank">
+                            <i class="fas fa-file-pdf me-2 text-danger"></i> Complete Fest Schedule PDF
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><h6 class="dropdown-header text-secondary fw-bold">Stagewise PDF Downloads</h6></li>
+                    {% for st in stages %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'download_schedule_pdf' %}?stage={{ st.id }}" target="_blank">
+                                <i class="fas fa-map-marker-alt me-2 text-primary"></i> {{ st.name }} <span class="badge bg-light text-dark ms-1">{{ st.get_stage_type_display }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
             <button type="button" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#autoScheduleModal">
                 <i class="fas fa-wand-magic-sparkles me-1"></i> Auto-Generate Schedule
             </button>
@@ -120,12 +143,17 @@
                                 <div class="col-12 col-md-6 col-lg-4 stage-column-box" data-stage-name="{{ st_col.stage.name|lower }}">
                                     <div class="p-3 border rounded-3 bg-light h-100">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="fw-bold text-primary">{{ st_col.stage.name }}</span>
-                                            {% if st_col.stage.stage_type == 'STAGE' %}
-                                                <span class="badge bg-primary" style="font-size: 0.7rem;">Stage</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary" style="font-size: 0.7rem;">Off-Stage</span>
-                                            {% endif %}
+                                            <div>
+                                                <span class="fw-bold text-primary me-1">{{ st_col.stage.name }}</span>
+                                                {% if st_col.stage.stage_type == 'STAGE' %}
+                                                    <span class="badge bg-primary" style="font-size: 0.65rem;">Stage</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary" style="font-size: 0.65rem;">Off-Stage</span>
+                                                {% endif %}
+                                            </div>
+                                            <a href="{% url 'download_schedule_pdf' %}?stage={{ st_col.stage.id }}&fest_day={{ day_matrix.day.id }}" class="btn btn-outline-danger btn-xs py-0 px-2 rounded-pill small fw-bold" style="font-size: 0.7rem;" title="Download {{ st_col.stage.name }} PDF" target="_blank">
+                                                <i class="fas fa-file-pdf me-1"></i> PDF
+                                            </a>
                                         </div>
 
                                         {% for s in st_col.schedules %}

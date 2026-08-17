@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{% if is_stagewise %}Stage Schedule - {{ selected_stage.name }}{% else %}Fest Schedule{% endif %}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            color: #222;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .institution-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #033067;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .fest-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #d63384;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 3px 0;
+        }
+        .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0d6efd;
+            margin: 0;
+        }
+        .day-header {
+            background-color: #033067;
+            color: white;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        .stage-header {
+            background-color: #eef4ff;
+            color: #0d6efd;
+            border-left: 4px solid #0d6efd;
+            padding: 5px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px 6px;
+            text-align: left;
+            font-size: 10px;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: bold;
+            text-align: center;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .fw-bold { font-weight: bold; }
+        .time-cell {
+            background-color: #fff8e1;
+            font-weight: bold;
+            color: #b45309;
+            text-align: center;
+        }
+        .footer {
+            text-align: center;
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 5px;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="institution-name">{{ institution_name|default:"HIDAYATHUL ISLAM HIGHER SECONDARY MADRASA, VETTIKKATTIRI" }}</div>
+        <div class="fest-name">{{ fest_name|default:"MEELAD FEST"|upper }}</div>
+        <h2 class="report-title">
+            {% if is_stagewise %}STAGE TIMETABLE - {{ selected_stage.name|upper }}{% else %}OFFICIAL FEST TIMETABLE{% endif %}
+        </h2>
+    </div>
+
+    {% for day_block in timetable_by_day %}
+        <div class="day-header">
+            📅 DAY {{ day_block.day.day_number }} {% if day_block.day.name %}({{ day_block.day.name }}){% endif %}
+            | Hours: {{ day_block.day.start_time|time:"h:i A" }} - {{ day_block.day.end_time|time:"h:i A" }}
+        </div>
+
+        {% for st_block in day_block.stages %}
+            <div class="stage-header">
+                📍 {{ st_block.stage.name }} ({{ st_block.stage.get_stage_type_display }})
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">Order</th>
+                        <th style="width: 35%;">Program Name</th>
+                        <th style="width: 18%;">Category</th>
+                        <th style="width: 15%;">Mode</th>
+                        <th style="width: 24%;">Scheduled Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in st_block.schedules %}
+                    <tr>
+                        <td class="text-center fw-bold">#{{ s.order }}</td>
+                        <td class="fw-bold">{{ s.program.name }}</td>
+                        <td>{{ s.program.category.name }}</td>
+                        <td>{{ s.program.get_presentation_mode_display }}</td>
+                        <td class="time-cell">{{ s.start_time|time:"h:i A" }} - {{ s.end_time|time:"h:i A" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center" style="color: #888;">No programs scheduled for this venue.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+        {% if not forloop.last %}
+            <div class="page-break"></div>
+        {% endif %}
+    {% empty %}
+        <p class="text-center">No schedule entries found.</p>
+    {% endfor %}
+
+    <div class="footer">
+        Generated on {% now "F d, Y - h:i A" %} | Official Competition Fest Schedule
+    </div>
+</body>
+</html>

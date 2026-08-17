@@ -142,6 +142,7 @@ urlpatterns = [
     path('schedule/auto-generate/', views.run_auto_scheduler, name='run_auto_scheduler'),
     path('schedule/clear-all/', views.clear_all_schedules, name='clear_all_schedules'),
     path('schedule/clashes/', views.view_clashes, name='view_clashes'),
+    path('schedule/download-pdf/', views.download_schedule_pdf, name='download_schedule_pdf'),
 
     #added on 23-09-2025
     path('assigned-programs/pdf/', views.assigned_programs_pdf, name='assigned_programs_pdf'),

@@ -2,7 +2,9 @@ from datetime import datetime, time, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 from django.db.models import Max
 from core.models import Program, FestDay, Stage, ProgramSchedule
 from core.schedule_utils import (
@@ -439,3 +441,60 @@ def view_clashes(request):
 
     clash_data = detect_all_clashes()
     return render(request, 'view_clashes.html', {'clash_data': clash_data})
+
+@login_required
+def download_schedule_pdf(request):
+    fest_day_id = request.GET.get('fest_day') or request.GET.get('fest_day_id')
+    stage_id = request.GET.get('stage') or request.GET.get('stage_id')
+
+    fest_days = FestDay.objects.all().order_by('day_number')
+    if fest_day_id and str(fest_day_id).isdigit():
+        fest_days = fest_days.filter(id=fest_day_id)
+
+    stages = Stage.objects.all().order_by('stage_type', 'name')
+    selected_stage = None
+    if stage_id and str(stage_id).isdigit():
+        selected_stage = Stage.objects.filter(id=stage_id).first()
+        if selected_stage:
+            stages = stages.filter(id=stage_id)
+
+    timetable_by_day = []
+    for day in fest_days:
+        day_stages = []
+        for stage in stages:
+            schedules = ProgramSchedule.objects.filter(fest_day=day, stage=stage).select_related('program', 'program__category').order_by('order', 'start_time')
+            if schedules.exists():
+                day_stages.append({
+                    'stage': stage,
+                    'schedules': schedules
+                })
+        if day_stages:
+            timetable_by_day.append({
+                'day': day,
+                'stages': day_stages
+            })
+
+    from .reports import get_pdf_base_context
+    context = get_pdf_base_context({
+        'timetable_by_day': timetable_by_day,
+        'selected_stage': selected_stage,
+        'is_stagewise': selected_stage is not None,
+    })
+
+    template_path = 'schedule_pdf.html'
+    template = get_template(template_path)
+    html = template.render(context)
+
+    if selected_stage:
+        clean_stage_name = selected_stage.name.replace(' ', '_')
+        filename = f"schedule_{clean_stage_name}.pdf"
+    else:
+        filename = "fest_schedule.pdf"
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors generating the PDF <pre>' + html + '</pre>')
+    return response
