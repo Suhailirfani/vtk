@@ -242,6 +242,9 @@ def generate_smart_auto_schedule(buffer_between_programs_mins=5):
                 if is_placed:
                     break
 
+                if not stage.is_active_for_day(day):
+                    continue
+
                 # Try finding a slot starting from day_start_dt up to day_end_dt
                 curr_start = day_start_dt
                 

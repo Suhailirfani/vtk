@@ -290,12 +290,18 @@ class Stage(models.Model):
     name = models.CharField(max_length=100)
     stage_type = models.CharField(max_length=15, choices=STAGE_TYPES, default='STAGE')
     location_details = models.CharField(max_length=200, blank=True)
+    fest_days = models.ManyToManyField('FestDay', related_name='stages', blank=True, help_text="Fest days when this stage is active/available")
 
     class Meta:
         ordering = ['stage_type', 'name']
 
     def __str__(self):
         return f"{self.name} [{self.get_stage_type_display()}]"
+
+    def is_active_for_day(self, fest_day):
+        if not self.fest_days.exists():
+            return True
+        return self.fest_days.filter(id=fest_day.id).exists()
 
 
 class ProgramSchedule(models.Model):

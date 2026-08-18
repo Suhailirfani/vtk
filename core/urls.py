@@ -132,8 +132,10 @@ urlpatterns = [
     # Schedule & Clash Management routes (manage_schedule, view_clashes)
     path('schedule/', views.manage_schedule, name='manage_schedule'),
     path('schedule/days/add/', views.add_fest_day, name='add_fest_day'),
+    path('schedule/days/edit/<int:day_id>/', views.edit_fest_day, name='edit_fest_day'),
     path('schedule/days/delete/<int:day_id>/', views.delete_fest_day, name='delete_fest_day'),
     path('schedule/stages/add/', views.add_stage, name='add_stage'),
+    path('schedule/stages/edit/<int:stage_id>/', views.edit_stage, name='edit_stage'),
     path('schedule/stages/delete/<int:stage_id>/', views.delete_stage, name='delete_stage'),
     path('schedule/program-config/<int:program_id>/', views.update_program_duration, name='update_program_duration'),
     path('schedule/save/', views.save_program_schedule, name='save_program_schedule'),

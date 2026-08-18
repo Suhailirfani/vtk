@@ -29,6 +29,11 @@ def manage_schedule(request):
 
     # Build info map of schedules per (fest_day_id, stage_id) containing count and next_start_time
     stage_info_map = {}
+    stage_days_map = {}
+    for st in stages:
+        active_ids = list(st.fest_days.values_list('id', flat=True))
+        stage_days_map[st.id] = active_ids
+
     base_date = datetime.today().date()
     for day in fest_days:
         for st in stages:
@@ -94,11 +99,12 @@ def manage_schedule(request):
 
     clash_data = detect_all_clashes()
 
-    # Master timetable matrix grouped by FestDay and Stage
+    # Master timetable matrix grouped by FestDay and Stage (showing active stages only per day)
     timetable_by_day = []
     for day in fest_days:
         day_stages = []
-        for stage in stages:
+        active_stages = [st for st in stages if st.is_active_for_day(day)]
+        for stage in active_stages:
             schedules = ProgramSchedule.objects.filter(fest_day=day, stage=stage).select_related('program', 'program__category').order_by('order', 'start_time')
             day_stages.append({
                 'stage': stage,
@@ -117,7 +123,8 @@ def manage_schedule(request):
         'scheduled_count': scheduled_count,
         'clash_data': clash_data,
         'timetable_by_day': timetable_by_day,
-        'stage_info_json': json.dumps(stage_info_map)
+        'stage_info_json': json.dumps(stage_info_map),
+        'stage_days_json': json.dumps(stage_days_map)
     }
     return render(request, 'manage_schedule.html', context)
 
@@ -159,6 +166,51 @@ def add_fest_day(request):
     return redirect('manage_schedule')
 
 @login_required
+def edit_fest_day(request, day_id):
+    if request.user.role != 'admin' or request.method != 'POST':
+        return redirect('manage_schedule')
+
+    day = get_object_or_404(FestDay, id=day_id)
+    day_number = request.POST.get('day_number')
+    date_str = request.POST.get('date')
+    name = request.POST.get('name', '').strip()
+    start_time_str = request.POST.get('start_time', '09:00')
+    end_time_str = request.POST.get('end_time', '21:00')
+
+    if day_number:
+        parsed_date = None
+        if date_str:
+            try:
+                parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+
+        try:
+            st_time = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            st_time = time(9, 0)
+
+        try:
+            en_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            en_time = time(21, 0)
+
+        day.day_number = int(day_number)
+        day.date = parsed_date
+        day.name = name
+        day.start_time = st_time
+        day.end_time = en_time
+        day.save()
+
+        # Recalculate stage schedules for this day
+        for st in Stage.objects.all():
+            recalculate_stage_schedules(day, st)
+
+        messages.success(request, f"Fest Day {day.day_number} updated successfully!")
+
+    return redirect('manage_schedule')
+
+@login_required
 def delete_fest_day(request, day_id):
     if request.user.role != 'admin' or request.method != 'POST':
         return redirect('manage_schedule')
@@ -177,14 +229,46 @@ def add_stage(request):
     name = request.POST.get('name', '').strip()
     stage_type = request.POST.get('stage_type', 'STAGE')
     location_details = request.POST.get('location_details', '').strip()
+    selected_fest_days = request.POST.getlist('fest_days')
 
     if name:
-        Stage.objects.create(
+        stage = Stage.objects.create(
             name=name,
             stage_type=stage_type,
             location_details=location_details
         )
+        if selected_fest_days:
+            stage.fest_days.set(selected_fest_days)
+        else:
+            stage.fest_days.set(FestDay.objects.all())
+
         messages.success(request, f"Venue '{name}' ({stage_type}) added successfully!")
+
+    return redirect('manage_schedule')
+
+@login_required
+def edit_stage(request, stage_id):
+    if request.user.role != 'admin' or request.method != 'POST':
+        return redirect('manage_schedule')
+
+    stage = get_object_or_404(Stage, id=stage_id)
+    name = request.POST.get('name', '').strip()
+    stage_type = request.POST.get('stage_type', 'STAGE')
+    location_details = request.POST.get('location_details', '').strip()
+    selected_fest_days = request.POST.getlist('fest_days')
+
+    if name:
+        stage.name = name
+        stage.stage_type = stage_type
+        stage.location_details = location_details
+        stage.save()
+
+        if selected_fest_days:
+            stage.fest_days.set(selected_fest_days)
+        else:
+            stage.fest_days.set(FestDay.objects.all())
+
+        messages.success(request, f"Venue '{name}' updated successfully!")
 
     return redirect('manage_schedule')
 
